@@ -1,0 +1,437 @@
+/* Telegram Desktop Dark Theme for Textual */
+
+Screen {
+    background: #0e1621;
+    color: #f5f5f5;
+}
+
+/* Header & Navigation Bar */
+#app-header {
+    dock: top;
+    height: 3;
+    background: #17212b;
+    color: #64b5f6;
+    border-bottom: solid #242f3d;
+    padding: 0 1;
+}
+
+#header-title {
+    width: 1fr;
+    text-style: bold;
+    color: #64b5f6;
+    content-align: left middle;
+    height: 3;
+}
+
+#header-actions {
+    width: auto;
+    height: 3;
+    align-horizontal: right;
+}
+
+/* Main Layout Grid */
+#main-container {
+    width: 100%;
+    height: 1fr;
+}
+
+/* Left Sidebar - Chat List */
+#left-sidebar {
+    width: 36;
+    min-width: 28;
+    max-width: 48;
+    height: 100%;
+    background: #17212b;
+    border-right: solid #242f3d;
+}
+
+#sidebar-search-bar {
+    height: 3;
+    padding: 0 1;
+    background: #17212b;
+    border-bottom: solid #242f3d;
+}
+
+#search-input {
+    width: 100%;
+    height: 1;
+    background: #242f3d;
+    border: none;
+    color: #ffffff;
+}
+
+#search-input:focus {
+    border: none;
+    background: #2b394a;
+}
+
+#category-tabs {
+    height: 2;
+    background: #17212b;
+    border-bottom: solid #242f3d;
+}
+
+.category-tab {
+    padding: 0 1;
+    color: #708499;
+    text-style: bold;
+}
+
+.category-tab.-active {
+    color: #64b5f6;
+    border-bottom: solid #64b5f6;
+}
+
+#chat-list-view {
+    height: 1fr;
+    background: #17212b;
+}
+
+.chat-item {
+    height: 4;
+    padding: 0 1;
+    border-bottom: solid #202b36;
+    background: #17212b;
+}
+
+.chat-item:hover {
+    background: #202b36;
+}
+
+.chat-item.-selected {
+    background: #2b5278;
+    color: #ffffff;
+}
+
+.chat-avatar {
+    width: 4;
+    height: 3;
+    content-align: center middle;
+    text-style: bold;
+    color: #64b5f6;
+}
+
+.chat-info-box {
+    width: 1fr;
+    height: 3;
+}
+
+.chat-title-row {
+    height: 1;
+    width: 100%;
+}
+
+.chat-title-text {
+    width: 1fr;
+    text-style: bold;
+    color: #ffffff;
+    overflow: hidden;
+}
+
+.chat-time-text {
+    width: auto;
+    color: #708499;
+    text-align: right;
+}
+
+.chat-msg-row {
+    height: 1;
+    width: 100%;
+}
+
+.chat-last-msg {
+    width: 1fr;
+    color: #708499;
+    overflow: hidden;
+}
+
+.chat-unread-badge {
+    background: #4fae4e;
+    color: #ffffff;
+    text-style: bold;
+    padding: 0 1;
+}
+
+#sidebar-bottom-bar {
+    height: 3;
+    background: #17212b;
+    border-top: solid #242f3d;
+    padding: 0 1;
+    align-vertical: middle;
+}
+
+/* Chat Area */
+#chat-area {
+    width: 1fr;
+    height: 100%;
+    background: #0e1621;
+}
+
+#chat-header {
+    dock: top;
+    height: 3;
+    background: #17212b;
+    border-bottom: solid #242f3d;
+    padding: 0 1;
+}
+
+#chat-header-info {
+    width: 1fr;
+    height: 3;
+    content-align: left middle;
+}
+
+#chat-header-title {
+    text-style: bold;
+    color: #ffffff;
+}
+
+#chat-header-subtitle {
+    color: #708499;
+}
+
+#chat-header-actions {
+    width: auto;
+    height: 3;
+    align-horizontal: right;
+    align-vertical: middle;
+}
+
+#pinned-banner {
+    dock: top;
+    height: 2;
+    background: #242f3d;
+    color: #64b5f6;
+    padding: 0 1;
+    border-bottom: solid #17212b;
+}
+
+#messages-container {
+    height: 1fr;
+    padding: 1;
+    background: #0e1621;
+}
+
+/* Message Bubbles */
+.message-row {
+    width: 100%;
+    height: auto;
+    margin: 1 0;
+}
+
+.message-row.-incoming {
+    align-horizontal: left;
+}
+
+.message-row.-outgoing {
+    align-horizontal: right;
+}
+
+.message-bubble {
+    max-width: 75%;
+    min-width: 20;
+    height: auto;
+    padding: 1 1;
+}
+
+.message-bubble.-incoming {
+    background: #182533;
+    border: solid #242f3d;
+    color: #f5f5f5;
+}
+
+.message-bubble.-outgoing {
+    background: #2b5278;
+    color: #ffffff;
+}
+
+.sender-name {
+    color: #64b5f6;
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+.reply-header {
+    background: #17212b;
+    border-left: solid #64b5f6;
+    padding: 0 1;
+    margin-bottom: 1;
+    color: #a6adc8;
+}
+
+.forward-header {
+    color: #708499;
+    text-style: italic;
+    margin-bottom: 1;
+}
+
+.message-text {
+    width: 100%;
+}
+
+.media-card {
+    background: #17212b;
+    border: solid #242f3d;
+    padding: 1;
+    margin: 1 0;
+}
+
+.media-badge {
+    color: #64b5f6;
+    text-style: bold;
+}
+
+.reactions-bar {
+    height: 1;
+    margin-top: 1;
+    color: #f5f5f5;
+}
+
+.message-meta {
+    height: 1;
+    color: #708499;
+    text-align: right;
+    margin-top: 1;
+}
+
+/* Composer Bar */
+#composer-container {
+    dock: bottom;
+    height: auto;
+    min-height: 4;
+    max-height: 10;
+    background: #17212b;
+    border-top: solid #242f3d;
+    padding: 1 1;
+}
+
+#composer-actions-row {
+    height: 1;
+    margin-bottom: 1;
+}
+
+#composer-input-row {
+    height: auto;
+    align-vertical: middle;
+}
+
+#message-input {
+    width: 1fr;
+    background: #242f3d;
+    border: none;
+    color: #ffffff;
+}
+
+#send-button {
+    background: #2481cc;
+    color: #ffffff;
+    min-width: 8;
+    margin-left: 1;
+}
+
+#send-button:hover {
+    background: #5288c1;
+}
+
+/* Right Sidebar - Chat Info */
+#right-sidebar {
+    width: 32;
+    height: 100%;
+    background: #17212b;
+    border-left: solid #242f3d;
+    padding: 1;
+}
+
+.profile-avatar-large {
+    height: 5;
+    content-align: center middle;
+    text-style: bold;
+    color: #64b5f6;
+    border: solid #242f3d;
+    margin-bottom: 1;
+}
+
+/* Modals & Screens */
+ModalScreen {
+    background: rgba(0, 0, 0, 0.75);
+    align: center middle;
+}
+
+.modal-dialog {
+    width: 60;
+    height: auto;
+    background: #17212b;
+    border: solid #2481cc;
+    padding: 1 2;
+}
+
+.modal-dialog-large {
+    width: 85;
+    height: 80%;
+    background: #17212b;
+    border: solid #2481cc;
+    padding: 1 2;
+}
+
+/* Call Screen */
+#call-screen {
+    width: 65;
+    height: 28;
+    background: #0e1621;
+    border: solid #64b5f6;
+    padding: 1 2;
+    align: center middle;
+}
+
+.call-avatar {
+    height: 6;
+    content-align: center middle;
+    color: #64b5f6;
+    text-style: bold;
+}
+
+.call-status {
+    color: #4fae4e;
+    text-align: center;
+    text-style: bold;
+}
+
+.call-controls {
+    height: 3;
+    margin-top: 2;
+    align-horizontal: center;
+}
+
+/* Buttons */
+Button {
+    background: #242f3d;
+    color: #ffffff;
+    border: none;
+}
+
+Button:hover {
+    background: #2b5278;
+}
+
+Button.-primary {
+    background: #2481cc;
+    color: #ffffff;
+}
+
+Button.-primary:hover {
+    background: #5288c1;
+}
+
+Button.-danger {
+    background: #e53935;
+    color: #ffffff;
+}
+
+Button.-danger:hover {
+    background: #ef5350;
+}
+
+Button.-success {
+    background: #4fae4e;
+    color: #ffffff;
+}

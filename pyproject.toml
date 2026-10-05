@@ -1,0 +1,28 @@
+[project]
+name = "telescraper"
+version = "0.1.0"
+description = "Pure Synchronous Telegram MTProto Client & Scraping Engine for Python."
+readme = "README.md"
+authors = [
+    { name = "Sheth jenil", email = "dummyjenil@gmail.com" }
+]
+requires-python = ">=3.8"
+dependencies = [
+    "pyaes>=1.6.1",
+    "qrcode>=7.4.2",
+    "rich>=13.0.0",
+    "questionary>=2.0.0",
+]
+
+[project.optional-dependencies]
+export = ["pandas>=1.5.0", "openpyxl>=3.0.0"]
+media = ["pillow>=9.0.0", "hachoir>=3.1.0"]
+all = ["pandas>=1.5.0", "openpyxl>=3.0.0", "pillow>=9.0.0", "hachoir>=3.1.0"]
+
+[project.scripts]
+telescraper = "telescraper.cli:main"
+telescraper-cli = "telescraper.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.11.26,<0.12.0"]
+build-backend = "uv_build"
