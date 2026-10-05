@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Sheth jenil", email = "dummyjenil@gmail.com" }
 ]
-requires-python = ">=3.8"
+
 dependencies = [
     "pyaes>=1.6.1",
     "qrcode>=7.4.2",
