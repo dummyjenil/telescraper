@@ -9,6 +9,8 @@
   },
   "ruff.enable": true,
   "ruff.organizeImports": true,
-  "python.analysis.autoImportCompletions": true
+  "python.analysis.autoImportCompletions": true,
+  "python.defaultInterpreterPath": "/usr/bin/python3",
+  "python.terminal.activateEnvironment": false
 }
 
