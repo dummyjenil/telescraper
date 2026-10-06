@@ -3,11 +3,13 @@ Message Bubble Widget for TeleScraper Textual TUI.
 Renders text formatting, media attachments, polls, replies, forwards, reactions, and action menus.
 """
 
-from typing import Optional, Callable, Any
+from typing import Any, Callable, Optional
+
 from textual.app import ComposeResult
+from textual.containers import Horizontal, Vertical
 from textual.widget import Widget
-from textual.widgets import Label, Button, Static, ProgressBar
-from textual.containers import Vertical, Horizontal
+from textual.widgets import Button, Label, Static
+
 from .audio_player import AudioPlayerWidget
 
 
@@ -30,7 +32,7 @@ class MessageBubbleWidget(Widget):
         reactions: Optional[dict] = None,
         is_pinned: bool = False,
         poll_data: Optional[dict] = None,
-        on_action: Optional[Callable[[str, Any], None]] = None
+        on_action: Optional[Callable[[str, Any], None]] = None,
     ):
         super().__init__()
         self.msg_id = msg_id
@@ -55,7 +57,6 @@ class MessageBubbleWidget(Widget):
 
         with Horizontal(classes=f"message-row {row_class}"):
             with Vertical(classes=f"message-bubble {bubble_class}"):
-                
                 # 1. Sender Header (for incoming messages)
                 if not self.is_outgoing and self.sender_name:
                     yield Label(f"👤 {self.sender_name}", classes="sender-name", markup=False)
@@ -81,15 +82,13 @@ class MessageBubbleWidget(Widget):
                             "│     [ 🖼️ Photo Preview ]    │\n"
                             "└────────────────────────────┘",
                             classes="text-center",
-                            markup=False
+                            markup=False,
                         )
                         yield Button("👁️ View Photo", id=f"btn-view-{self.msg_id}", variant="primary")
 
                 elif self.media_type in ("audio", "voice"):
                     yield AudioPlayerWidget(
-                        filename=self.media_name or "Voice Message",
-                        duration=120,
-                        is_voice=(self.media_type == "voice")
+                        filename=self.media_name or "Voice Message", duration=120, is_voice=(self.media_type == "voice")
                     )
 
                 elif self.media_type in ("document", "video"):
@@ -97,13 +96,19 @@ class MessageBubbleWidget(Widget):
                         icon = "🎬 Video" if self.media_type == "video" else "📄 Document"
                         size_mb = (self.media_size or 0) / (1024 * 1024)
                         size_str = f"({size_mb:.2f} MB)" if size_mb > 0 else ""
-                        yield Label(f"{icon}: {self.media_name or 'file'} {size_str}", classes="media-badge", markup=False)
+                        yield Label(
+                            f"{icon}: {self.media_name or 'file'} {size_str}", classes="media-badge", markup=False
+                        )
                         yield Button("⬇️ Download File", id=f"btn-download-{self.msg_id}", variant="default")
 
                 elif self.poll_data:
                     with Vertical(classes="media-card"):
-                        yield Label(f"📊 Poll: {self.poll_data.get('question', 'Vote')}", classes="text-bold text-cyan", markup=False)
-                        for idx, opt in enumerate(self.poll_data.get('options', [])):
+                        yield Label(
+                            f"📊 Poll: {self.poll_data.get('question', 'Vote')}",
+                            classes="text-bold text-cyan",
+                            markup=False,
+                        )
+                        for idx, opt in enumerate(self.poll_data.get("options", [])):
                             with Horizontal(classes="margin-top"):
                                 yield Button(f"Vote: {opt}", id=f"btn-vote-{self.msg_id}-{idx}", variant="primary")
 

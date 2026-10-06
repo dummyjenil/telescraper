@@ -1,13 +1,14 @@
 """Data models representing channels, groups, messages, members and media."""
 
-from dataclasses import dataclass, asdict, field
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Optional, Any, Dict, Callable
+from typing import Any, Callable, Dict, Optional
 
 
 @dataclass
 class MediaInfo:
     """Detailed information about an attached media item."""
+
     media_type: str  # 'photo', 'video', 'document', 'audio', 'voice', 'sticker', 'web_page', 'other'
     file_name: Optional[str] = None
     file_size: Optional[int] = None  # in bytes
@@ -23,6 +24,7 @@ class MediaInfo:
 @dataclass
 class ChatData:
     """Information about a Telegram channel or group."""
+
     id: int
     title: str
     username: Optional[str] = None
@@ -35,13 +37,14 @@ class ChatData:
 
     def to_dict(self) -> Dict[str, Any]:
         data = asdict(self)
-        data.pop('raw_chat', None)
+        data.pop("raw_chat", None)
         return data
 
 
 @dataclass
 class MemberData:
     """Information about a Telegram chat member or contact."""
+
     id: int
     username: Optional[str] = None
     first_name: Optional[str] = None
@@ -66,14 +69,15 @@ class MemberData:
 
     def to_dict(self) -> Dict[str, Any]:
         data = asdict(self)
-        data.pop('raw_user', None)
-        data['full_name'] = self.full_name
+        data.pop("raw_user", None)
+        data["full_name"] = self.full_name
         return data
 
 
 @dataclass
 class MessageData:
     """Clean structured data of a scraped Telegram message."""
+
     id: int
     chat_id: int
     chat_title: Optional[str]
@@ -94,29 +98,27 @@ class MessageData:
         self,
         output_dir: str = "./downloads",
         filename: Optional[str] = None,
-        progress_callback: Optional[Callable[[int, int], None]] = None
+        progress_callback: Optional[Callable[[int, int], None]] = None,
     ) -> Optional[str]:
         """Download this message's attached media directly."""
         if not self.has_media or not self._downloader_fn:
             return None
         return self._downloader_fn(
-            message=self.raw_message,
-            output_dir=output_dir,
-            filename=filename,
-            progress_callback=progress_callback
+            message=self.raw_message, output_dir=output_dir, filename=filename, progress_callback=progress_callback
         )
 
     def extract_data(self) -> Dict[str, Any]:
         """Extract emails, phones, URLs, mentions, and crypto wallets from this message."""
         from .extractor import extract_data
+
         return extract_data(self.text)
 
     def to_dict(self) -> Dict[str, Any]:
         data = asdict(self)
-        data.pop('raw_message', None)
-        data.pop('_downloader_fn', None)
-        if isinstance(data.get('date'), datetime):
-            data['date'] = data['date'].isoformat()
+        data.pop("raw_message", None)
+        data.pop("_downloader_fn", None)
+        if isinstance(data.get("date"), datetime):
+            data["date"] = data["date"].isoformat()
         if self.media:
-            data['media'] = self.media.to_dict()
+            data["media"] = self.media.to_dict()
         return data

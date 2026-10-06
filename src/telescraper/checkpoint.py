@@ -6,7 +6,7 @@ Saves scraping offset progress to disk so interrupted scraping jobs resume seaml
 import json
 import os
 import time
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 
 class ScrapeCheckpoint:
@@ -19,7 +19,7 @@ class ScrapeCheckpoint:
     def _load(self) -> Dict[str, Any]:
         if os.path.exists(self.filepath):
             try:
-                with open(self.filepath, 'r', encoding='utf-8') as f:
+                with open(self.filepath, "r", encoding="utf-8") as f:
                     return json.load(f)
             except Exception:
                 pass
@@ -43,7 +43,7 @@ class ScrapeCheckpoint:
     def save(self) -> None:
         """Write checkpoint to file."""
         os.makedirs(os.path.dirname(os.path.abspath(self.filepath)), exist_ok=True)
-        with open(self.filepath, 'w', encoding='utf-8') as f:
+        with open(self.filepath, "w", encoding="utf-8") as f:
             json.dump(self.data, f, indent=2)
 
     def reset(self, target: Optional[str] = None) -> None:

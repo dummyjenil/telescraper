@@ -2,12 +2,13 @@
 Left Sidebar Widget (Chat List & Categories) for TeleScraper Textual TUI.
 """
 
-from typing import Optional, Callable, List
+from typing import Callable, List, Optional
+
 from textual.app import ComposeResult
-from textual.widget import Widget
-from textual.widgets import Input, Button, Label, ListView, ListItem, Static
-from textual.containers import Vertical, Horizontal
+from textual.containers import Horizontal, Vertical
 from textual.reactive import reactive
+from textual.widget import Widget
+from textual.widgets import Button, Input, Label, ListItem, ListView
 
 from ...client import TeleScraper
 from ...models import ChatData
@@ -26,7 +27,7 @@ class ChatListItemWidget(ListItem):
         unread_count: int = 0,
         is_channel: bool = False,
         is_group: bool = False,
-        is_pinned: bool = False
+        is_pinned: bool = False,
     ):
         super().__init__(classes="chat-item", name=str(chat_id))
         self.chat_id = chat_id
@@ -117,14 +118,16 @@ class LeftSidebarWidget(Widget):
 
         # Add Saved Messages by default
         if not q or "saved" in q:
-            lv.append(ChatListItemWidget(
-                chat_id=0,
-                title="Saved Messages",
-                username="me",
-                last_message="Cloud Storage",
-                timestamp="Now",
-                is_pinned=True
-            ))
+            lv.append(
+                ChatListItemWidget(
+                    chat_id=0,
+                    title="Saved Messages",
+                    username="me",
+                    last_message="Cloud Storage",
+                    timestamp="Now",
+                    is_pinned=True,
+                )
+            )
 
         for c in self._chats_cache:
             if self.active_category == "direct" and (c.is_channel or c.is_group):
@@ -140,16 +143,18 @@ class LeftSidebarWidget(Widget):
                 if not (title_match or uname_match):
                     continue
 
-            lv.append(ChatListItemWidget(
-                chat_id=c.id,
-                title=c.title,
-                username=c.username,
-                last_message=f"{c.participants_count or 0} members",
-                timestamp="12:45",
-                unread_count=0,
-                is_channel=c.is_channel,
-                is_group=c.is_group
-            ))
+            lv.append(
+                ChatListItemWidget(
+                    chat_id=c.id,
+                    title=c.title,
+                    username=c.username,
+                    last_message=f"{c.participants_count or 0} members",
+                    timestamp="12:45",
+                    unread_count=0,
+                    is_channel=c.is_channel,
+                    is_group=c.is_group,
+                )
+            )
 
     def on_input_changed(self, event: Input.Changed) -> None:
         if event.input.id == "search-input":

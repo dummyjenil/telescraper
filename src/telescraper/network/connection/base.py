@@ -1,20 +1,13 @@
 """Base synchronous TCP connection class."""
 
 import socket
-import ssl
 from typing import Optional, Tuple
 
 
 class SyncConnection:
     """Base synchronous connection over standard blocking TCP socket."""
 
-    def __init__(
-        self,
-        ip: str,
-        port: int,
-        timeout: float = 20.0,
-        proxy: Optional[Tuple[str, int]] = None
-    ):
+    def __init__(self, ip: str, port: int, timeout: float = 20.0, proxy: Optional[Tuple[str, int]] = None):
         self.ip = ip
         self.port = port
         self.timeout = timeout

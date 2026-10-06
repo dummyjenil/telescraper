@@ -1,6 +1,6 @@
 [project]
 name = "telescraper"
-version = "0.1.0"
+version = "0.1.1"
 description = "Pure Synchronous Telegram MTProto Client & Scraping Engine for Python."
 readme = "README.md"
 authors = [
@@ -26,3 +26,35 @@ telescraper-cli = "telescraper.cli:main"
 [build-system]
 requires = ["uv_build>=0.11.26,<0.12.0"]
 build-backend = "uv_build"
+
+[tool.ruff]
+target-version = "py39"
+line-length = 120
+src = ["src", "tests"]
+exclude = [
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    ".venv",
+    "src/telescraper/tl",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes (undefined imports/names, unused imports, syntax errors)
+    "I",   # isort (import sorting)
+    "B",   # flake8-bugbear (common bug patterns)
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "B008",  # function call in default argument
+    "B904",  # raise ... from err
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401", "F403", "F405"]
+"tests/*" = ["F401", "F841"]
+"src/telescraper/errors/rpcerrorlist.py" = ["F811"]

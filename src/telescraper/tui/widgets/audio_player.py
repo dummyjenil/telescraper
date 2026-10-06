@@ -3,10 +3,10 @@ Inline Audio & Voice Message Player Widget for TeleScraper TUI.
 """
 
 from textual.app import ComposeResult
-from textual.widget import Widget
-from textual.widgets import Label, Button, Static, ProgressBar
 from textual.containers import Horizontal, Vertical
 from textual.reactive import reactive
+from textual.widget import Widget
+from textual.widgets import Button, Label, ProgressBar
 
 
 class AudioPlayerWidget(Widget):
@@ -28,7 +28,9 @@ class AudioPlayerWidget(Widget):
             yield Label(f"{type_icon}: {self.filename}", classes="text-bold text-cyan")
             with Horizontal(classes="align-middle"):
                 yield Button("▶ Play", id="btn-play-pause", variant="primary", classes="min-width-8")
-                yield ProgressBar(total=100, show_percentage=False, show_eta=False, id="audio-progress", classes="width-1fr")
+                yield ProgressBar(
+                    total=100, show_percentage=False, show_eta=False, id="audio-progress", classes="width-1fr"
+                )
                 yield Label(f"00:00 / {self._format_time(self.duration)}", id="audio-time-label", classes="subtext")
 
     def _format_time(self, seconds: int) -> str:
@@ -41,7 +43,7 @@ class AudioPlayerWidget(Widget):
             self.is_playing = not self.is_playing
             event.button.label = "⏸ Pause" if self.is_playing else "▶ Play"
             event.button.variant = "error" if self.is_playing else "primary"
-            
+
             if self.is_playing:
                 self._timer = self.set_interval(0.5, self._tick_progress)
             else:

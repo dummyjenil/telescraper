@@ -1,19 +1,19 @@
 """Connection transports package."""
 
+from .abridged import ConnectionTcpAbridged
 from .base import SyncConnection
 from .full import ConnectionTcpFull
-from .abridged import ConnectionTcpAbridged
+from .http import ConnectionHttp
 from .intermediate import (
     ConnectionTcpIntermediate,
     ConnectionTcpRandomizedIntermediate,
 )
-from .obfuscated import ConnectionTcpObfuscated
 from .mtproxy import (
-    ConnectionTcpMTProxyIntermediate,
     ConnectionTcpMTProxyAbridged,
+    ConnectionTcpMTProxyIntermediate,
     ConnectionTcpMTProxyRandomizedIntermediate,
 )
-from .http import ConnectionHttp
+from .obfuscated import ConnectionTcpObfuscated
 
 # Alias for backward compatibility
 SyncTcpIntermediateConnection = ConnectionTcpIntermediate

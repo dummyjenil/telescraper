@@ -8,7 +8,7 @@ Demonstration of all advanced Pure Synchronous TeleScraper features:
 - Secret Chats
 """
 
-from telescraper import TeleScraper, StringSession
+from telescraper import StringSession, TeleScraper
 
 API_ID = 12345678
 API_HASH = "your_api_hash"

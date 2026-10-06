@@ -3,6 +3,7 @@
 import os
 import random
 import struct
+
 from .base import SyncConnection
 
 
@@ -15,18 +16,18 @@ class ConnectionTcpIntermediate(SyncConnection):
 
     def _send_handshake(self) -> None:
         if self._socket:
-            self._socket.sendall(b'\xee\xee\xee\xee')
+            self._socket.sendall(b"\xee\xee\xee\xee")
 
     def send(self, data: bytes) -> None:
         if not self._connected or not self._socket:
             raise ConnectionError("Socket is not connected")
-        packet = struct.pack('<i', len(data)) + data
+        packet = struct.pack("<i", len(data)) + data
         self._socket.sendall(packet)
 
     def recv(self) -> bytes:
         if not self._connected or not self._socket:
             raise ConnectionError("Socket is not connected")
-        length = struct.unpack('<i', self._recv_exact(4))[0]
+        length = struct.unpack("<i", self._recv_exact(4))[0]
         if length <= 0 or length > 2 * 1024 * 1024:
             raise ValueError(f"Invalid TCP Intermediate packet length: {length}")
         return self._recv_exact(length)
@@ -43,7 +44,7 @@ class ConnectionTcpRandomizedIntermediate(ConnectionTcpIntermediate):
             raise ConnectionError("Socket is not connected")
         pad_size = random.randint(0, 3)
         padding = os.urandom(pad_size)
-        packet = struct.pack('<i', len(data) + pad_size) + data + padding
+        packet = struct.pack("<i", len(data) + pad_size) + data + padding
         self._socket.sendall(packet)
 
     def recv(self) -> bytes:

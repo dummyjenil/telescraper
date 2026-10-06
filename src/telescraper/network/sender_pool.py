@@ -6,11 +6,12 @@ and manages transparent cross-DC authorization export and import.
 """
 
 import threading
-from typing import Dict, Optional, Any, Type
-from .connection import SyncConnection, ConnectionTcpIntermediate
-from .mtproto_sender import SyncMTProtoSender
+from typing import Any, Dict, Optional, Type
+
+from ..tl import functions
 from .authenticator import do_authentication
-from ..tl import functions, types
+from .connection import ConnectionTcpIntermediate, SyncConnection
+from .mtproto_sender import SyncMTProtoSender
 
 
 class SyncSenderPool:
@@ -31,7 +32,7 @@ class SyncSenderPool:
         self,
         main_client: Any,
         connection_class: Type[SyncConnection] = ConnectionTcpIntermediate,
-        proxy: Optional[dict] = None
+        proxy: Optional[dict] = None,
     ):
         self.main_client = main_client
         self.connection_class = connection_class
@@ -64,14 +65,9 @@ class SyncSenderPool:
             # Export authorization from main client if main client is logged in
             if self.main_client and hasattr(self.main_client, "_sender") and self.main_client._sender:
                 try:
-                    exported_auth = self.main_client._invoke(
-                        functions.auth.ExportAuthorizationRequest(dc_id=dc_id)
-                    )
+                    exported_auth = self.main_client._invoke(functions.auth.ExportAuthorizationRequest(dc_id=dc_id))
                     sender.invoke(
-                        functions.auth.ImportAuthorizationRequest(
-                            id=exported_auth.id,
-                            bytes=exported_auth.bytes
-                        )
+                        functions.auth.ImportAuthorizationRequest(id=exported_auth.id, bytes=exported_auth.bytes)
                     )
                 except Exception:
                     # Anonymous or download-only DC authorization
@@ -83,7 +79,7 @@ class SyncSenderPool:
     def close_all(self):
         """Disconnect all pooled senders."""
         with self._lock:
-            for dc_id, sender in list(self._senders.items()):
+            for sender in list(self._senders.values()):
                 try:
                     sender.disconnect()
                 except Exception:

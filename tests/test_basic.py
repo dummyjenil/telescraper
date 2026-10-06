@@ -1,19 +1,20 @@
 import os
 import tempfile
 from datetime import datetime
+
 from telescraper import (
-    TeleScraper,
-    MessageData,
-    MediaInfo,
     ChatData,
+    MediaInfo,
     MemberData,
+    MessageData,
+    QRLogin,
+    SecretChat,
     StringSession,
     SyncSession,
-    QRLogin,
     TakeoutSession,
-    SecretChat,
+    TeleScraper,
+    export_to_csv,
     export_to_json,
-    export_to_csv
 )
 
 
@@ -26,7 +27,8 @@ def test_string_session():
 
     # Test create dummy session with key
     from telescraper.crypto import AuthKey
-    dummy_key = AuthKey(data=b'0' * 256)
+
+    dummy_key = AuthKey(data=b"0" * 256)
     s.set_auth_key(dummy_key)
     exported = s.save()
     assert len(exported) > 100
@@ -42,7 +44,7 @@ def test_string_session():
 
 def test_models_and_exports():
     with tempfile.TemporaryDirectory() as tmpdir:
-        media = MediaInfo(media_type='photo', file_name='img.jpg', file_size=2048)
+        media = MediaInfo(media_type="photo", file_name="img.jpg", file_size=2048)
         msg = MessageData(
             id=42,
             chat_id=-10012345,
@@ -50,7 +52,7 @@ def test_models_and_exports():
             date=datetime.now(),
             text="Test message for telescraper",
             has_media=True,
-            media=media
+            media=media,
         )
 
         json_out = os.path.join(tmpdir, "out.json")

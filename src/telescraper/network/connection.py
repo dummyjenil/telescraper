@@ -1,16 +1,16 @@
 """Re-export all connection classes for backward compatibility."""
 
 from .connection import (
-    SyncConnection,
-    ConnectionTcpFull,
-    ConnectionTcpAbridged,
-    ConnectionTcpIntermediate,
-    ConnectionTcpRandomizedIntermediate,
-    ConnectionTcpObfuscated,
-    ConnectionTcpMTProxyIntermediate,
-    ConnectionTcpMTProxyAbridged,
-    ConnectionTcpMTProxyRandomizedIntermediate,
     ConnectionHttp,
+    ConnectionTcpAbridged,
+    ConnectionTcpFull,
+    ConnectionTcpIntermediate,
+    ConnectionTcpMTProxyAbridged,
+    ConnectionTcpMTProxyIntermediate,
+    ConnectionTcpMTProxyRandomizedIntermediate,
+    ConnectionTcpObfuscated,
+    ConnectionTcpRandomizedIntermediate,
+    SyncConnection,
     SyncTcpIntermediateConnection,
 )
 

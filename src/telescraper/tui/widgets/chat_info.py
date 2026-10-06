@@ -2,11 +2,12 @@
 Collapsible Right Sidebar (Chat & Channel Info) for TeleScraper Textual TUI.
 """
 
-from typing import Optional, Callable
+from typing import Callable, Optional
+
 from textual.app import ComposeResult
+from textual.containers import Horizontal, ScrollableContainer, Vertical
 from textual.widget import Widget
-from textual.widgets import Label, Button, Static, TabbedContent, TabPane, Input
-from textual.containers import Vertical, Horizontal, ScrollableContainer
+from textual.widgets import Button, Label, Static
 
 from ...client import TeleScraper
 
@@ -36,7 +37,12 @@ class RightChatInfoWidget(Widget):
                 yield Button("✖", id="btn-close-info", variant="default")
 
             with Vertical(classes="profile-avatar-large"):
-                yield Label("╭─────────╮\n│   INFO  │\n╰─────────╯", id="info-avatar-icon", classes="text-cyan text-bold text-center", markup=False)
+                yield Label(
+                    "╭─────────╮\n│   INFO  │\n╰─────────╯",
+                    id="info-avatar-icon",
+                    classes="text-cyan text-bold text-center",
+                    markup=False,
+                )
                 yield Label("Select a chat", id="info-chat-title", classes="text-bold text-center", markup=False)
                 yield Label("@username", id="info-chat-username", classes="subtext text-center", markup=False)
                 yield Label("0 subscribers", id="info-chat-members", classes="text-green text-center", markup=False)
@@ -50,7 +56,12 @@ class RightChatInfoWidget(Widget):
                 yield Button("🗄️ SQLite", id="btn-exp-db", variant="default")
                 yield Button("📄 JSON", id="btn-exp-json", variant="default")
 
-            yield Button("💰 Extract Wallets & Emails", id="btn-extract-entities", variant="success", classes="margin-top width-1fr")
+            yield Button(
+                "💰 Extract Wallets & Emails",
+                id="btn-extract-entities",
+                variant="success",
+                classes="margin-top width-1fr",
+            )
 
             yield Label("🛡️ Admin & Moderation:", classes="text-bold margin-top", markup=False)
             yield Button("🔗 Manage Invite Links", id="btn-admin-invites", variant="default", classes="width-1fr")
@@ -93,12 +104,20 @@ class RightChatInfoWidget(Widget):
                 links = self.client.get_invite_links(self.current_target)
                 self.notify(f"Found {len(links)} active invite links.", title="Invite Links")
             except Exception as e:
-                self.app.push_screen(NotSupportedModal("Invite Links", f"Cannot fetch invite links: {e} (Admin rights required)"))
+                self.app.push_screen(
+                    NotSupportedModal("Invite Links", f"Cannot fetch invite links: {e} (Admin rights required)")
+                )
         elif event.button.id == "btn-admin-log" and self.current_target:
             try:
                 events = self.client.get_admin_log(self.current_target, limit=20)
                 self.notify(f"Loaded {len(events)} admin audit events.", title="Admin Log")
             except Exception as e:
-                self.app.push_screen(NotSupportedModal("Admin Log", f"Cannot fetch admin logs: {e} (Admin rights required)"))
+                self.app.push_screen(
+                    NotSupportedModal("Admin Log", f"Cannot fetch admin logs: {e} (Admin rights required)")
+                )
         elif event.button.id == "btn-admin-kick":
-            self.app.push_screen(NotSupportedModal("Kick Participant", "Select a specific user from chat members list to execute kick/ban."))
+            self.app.push_screen(
+                NotSupportedModal(
+                    "Kick Participant", "Select a specific user from chat members list to execute kick/ban."
+                )
+            )

@@ -4,73 +4,66 @@ Built-in component of the TeleScraper library (100% Pure Synchronous MTProto 2.0
 Equipped with arrow-key keyboard navigation (↑/↓), multi-select, and live Rich UI.
 """
 
+import argparse
+import json
 import os
 import sys
-import json
-import time
-import getpass
-import argparse
 from pathlib import Path
-from typing import Optional, List, Dict, Any, Union
+from typing import List, Optional
 
 from .client import TeleScraper
-from .sessions.string_session import StringSession
-from .checkpoint import ScrapeCheckpoint
-from .errors import SessionPasswordNeededError, RPCError, UserMigrateError, PhoneMigrateError
-from .exceptions import TargetNotFoundError, AuthenticationError, TeleScraperError
 from .network.connection import (
-    ConnectionTcpIntermediate,
-    ConnectionTcpRandomizedIntermediate,
-    ConnectionTcpObfuscated,
-    ConnectionTcpMTProxyIntermediate,
-    ConnectionTcpFull,
-    ConnectionTcpAbridged,
     ConnectionHttp,
+    ConnectionTcpAbridged,
+    ConnectionTcpFull,
+    ConnectionTcpIntermediate,
+    ConnectionTcpMTProxyIntermediate,
+    ConnectionTcpObfuscated,
+    ConnectionTcpRandomizedIntermediate,
 )
-from .tl import functions, types
+from .sessions.string_session import StringSession
 from .utils import get_display_name
 
 # Rich & Questionary & QRCode
 try:
-    from rich.console import Console
-    from rich.table import Table
-    from rich.panel import Panel
-    from rich import box
-    from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeRemainingColumn, TransferSpeedColumn
-    from rich.prompt import Prompt, Confirm, IntPrompt
-    from rich.text import Text
-    from rich import print as rprint
-    import qrcode
     import questionary
-    from questionary import Style, Choice, Separator
+    from questionary import Choice, Separator, Style
+    from rich import box
+    from rich.console import Console
+    from rich.panel import Panel
+    from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeRemainingColumn, TransferSpeedColumn
+    from rich.table import Table
+
     HAS_LIBS = True
 except ImportError:
     import subprocess
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "rich", "qrcode", "questionary", "openpyxl", "pandas"])
-    from rich.console import Console
-    from rich.table import Table
-    from rich.panel import Panel
-    from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeRemainingColumn, TransferSpeedColumn
-    from rich.prompt import Prompt, Confirm, IntPrompt
-    from rich.text import Text
-    from rich import print as rprint
-    import qrcode
+
+    subprocess.check_call(
+        [sys.executable, "-m", "pip", "install", "rich", "qrcode", "questionary", "openpyxl", "pandas"]
+    )
     import questionary
-    from questionary import Style, Choice, Separator
+    from questionary import Choice, Separator, Style
+    from rich.console import Console
+    from rich.panel import Panel
+    from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeRemainingColumn, TransferSpeedColumn
+    from rich.table import Table
+
     HAS_LIBS = True
 
 console = Console()
 
-CUSTOM_STYLE = Style([
-    ('qmark', 'fg:#00ffff bold'),
-    ('question', 'bold fg:#ffffff'),
-    ('answer', 'fg:#00ff88 bold'),
-    ('pointer', 'fg:#00ffff bold'),
-    ('highlighted', 'fg:#00ffff bold underline'),
-    ('selected', 'fg:#00ff88 bold'),
-    ('separator', 'fg:#6c7086'),
-    ('instruction', 'fg:#a6adc8 italic'),
-])
+CUSTOM_STYLE = Style(
+    [
+        ("qmark", "fg:#00ffff bold"),
+        ("question", "bold fg:#ffffff"),
+        ("answer", "fg:#00ff88 bold"),
+        ("pointer", "fg:#00ffff bold"),
+        ("highlighted", "fg:#00ffff bold underline"),
+        ("selected", "fg:#00ff88 bold"),
+        ("separator", "fg:#6c7086"),
+        ("instruction", "fg:#a6adc8 italic"),
+    ]
+)
 
 CONFIG_FILE = Path.cwd() / "config.json"
 DEFAULT_SESSION_NAME = "my_telegram"
@@ -89,6 +82,7 @@ TRANSPORTS_MAP = {
 # ==============================================================================
 # Configuration Management
 # ==============================================================================
+
 
 def load_config() -> dict:
     if CONFIG_FILE.exists():
@@ -109,9 +103,7 @@ def save_config(cfg: dict) -> None:
 
 
 def get_credentials(
-    api_id: Optional[int] = None,
-    api_hash: Optional[str] = None,
-    session_name: Optional[str] = None
+    api_id: Optional[int] = None, api_hash: Optional[str] = None, session_name: Optional[str] = None
 ) -> tuple[int, str, str]:
     cfg = load_config()
     final_api_id = api_id or cfg.get("api_id")
@@ -119,13 +111,15 @@ def get_credentials(
     final_session = session_name or cfg.get("session_name", DEFAULT_SESSION_NAME)
 
     if not final_api_id or not final_api_hash:
-        console.print(Panel(
-            "[bold cyan]Telegram API Credentials Setup[/bold cyan]\n\n"
-            "To connect to Telegram MTProto, you need an [bold]API ID[/bold] and [bold]API Hash[/bold].\n"
-            "Get them instantly for free from [link=https://my.telegram.org]https://my.telegram.org[/link] (API development tools).",
-            border_style="cyan"
-        ))
-        
+        console.print(
+            Panel(
+                "[bold cyan]Telegram API Credentials Setup[/bold cyan]\n\n"
+                "To connect to Telegram MTProto, you need an [bold]API ID[/bold] and [bold]API Hash[/bold].\n"
+                "Get them instantly for free from [link=https://my.telegram.org]https://my.telegram.org[/link] (API development tools).",
+                border_style="cyan",
+            )
+        )
+
         while not final_api_id:
             val = questionary.text("Enter your Telegram API ID:", style=CUSTOM_STYLE).ask()
             if val and val.strip().isdigit():
@@ -138,7 +132,9 @@ def get_credentials(
             if val and val.strip():
                 final_api_hash = val.strip()
 
-        if questionary.confirm("Save these credentials in config.json for future use?", default=True, style=CUSTOM_STYLE).ask():
+        if questionary.confirm(
+            "Save these credentials in config.json for future use?", default=True, style=CUSTOM_STYLE
+        ).ask():
             cfg["api_id"] = final_api_id
             cfg["api_hash"] = final_api_hash
             cfg["session_name"] = final_session
@@ -153,23 +149,18 @@ def get_client(
     api_id: Optional[int] = None,
     api_hash: Optional[str] = None,
     transport: str = "intermediate",
-    proxy: Optional[tuple] = None
+    proxy: Optional[tuple] = None,
 ) -> TeleScraper:
     aid, ahash, sname = get_credentials(api_id, api_hash, session_name)
     session_path = Path.cwd() / f"{sname}.session"
     conn_cls = TRANSPORTS_MAP.get(transport.lower(), ConnectionTcpIntermediate)
-    return TeleScraper(
-        session=str(session_path),
-        api_id=aid,
-        api_hash=ahash,
-        connection=conn_cls,
-        proxy=proxy
-    )
+    return TeleScraper(session=str(session_path), api_id=aid, api_hash=ahash, connection=conn_cls, proxy=proxy)
 
 
 # ==============================================================================
 # Helper for Selecting Chats / Dialogs Interactively
 # ==============================================================================
+
 
 def pick_chat_interactively(client: TeleScraper, allow_custom: bool = True) -> str:
     """Prompt user to select a chat from their joined dialogs with arrow keys, or type custom username."""
@@ -185,7 +176,11 @@ def pick_chat_interactively(client: TeleScraper, allow_custom: bool = True) -> s
         choices.append(Separator())
 
     for c in chats:
-        ctype = "📢 Channel" if c.is_channel else ("👥 Supergroup" if c.is_megagroup else ("👥 Group" if c.is_group else "👤 Chat"))
+        ctype = (
+            "📢 Channel"
+            if c.is_channel
+            else ("👥 Supergroup" if c.is_megagroup else ("👥 Group" if c.is_group else "👤 Chat"))
+        )
         uname = f"(@{c.username})" if c.username else ""
         title = f"{ctype} | {c.title[:30]} {uname} [ID: {c.id}]"
         val = c.username or str(c.id)
@@ -195,10 +190,7 @@ def pick_chat_interactively(client: TeleScraper, allow_custom: bool = True) -> s
         return questionary.text("Enter target username or chat ID (e.g. @channel or me):", style=CUSTOM_STYLE).ask()
 
     res = questionary.select(
-        "Select a Target Chat / Channel:",
-        choices=choices,
-        style=CUSTOM_STYLE,
-        use_shortcuts=True
+        "Select a Target Chat / Channel:", choices=choices, style=CUSTOM_STYLE, use_shortcuts=True
     ).ask()
 
     if res == "__CUSTOM__" or res is None:
@@ -210,34 +202,46 @@ def pick_chat_interactively(client: TeleScraper, allow_custom: bool = True) -> s
 # 1. Authentication & QR Code
 # ==============================================================================
 
-def cmd_login_qr(session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None, timeout: int = 120) -> None:
+
+def cmd_login_qr(
+    session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None, timeout: int = 120
+) -> None:
     client = get_client(session_name, api_id, api_hash)
     console.print(Panel("[bold green]Starting Telegram QR Code Login Engine...[/bold green]", border_style="green"))
     client.connect()
 
     if client.is_user_authorized():
         me = client.get_me()
-        console.print(f"[bold green]✔ Already logged in as:[/bold green] [bold cyan]{me.first_name} (@{me.username or 'No username'})[/bold cyan] (ID: {me.id})")
+        console.print(
+            f"[bold green]✔ Already logged in as:[/bold green] [bold cyan]{me.first_name} (@{me.username or 'No username'})[/bold cyan] (ID: {me.id})"
+        )
         console.print(f"[blue]Active session file:[/blue] {getattr(client.session, 'filename', 'active session')}")
         return
 
     qr = client.qr_login(print_qr=True)
     try:
         user = qr.wait(timeout=timeout, auto_handle_2fa=True)
-        console.print(Panel(
-            f"[bold green]🎉 QR LOGIN SUCCESSFUL![/bold green]\n\n"
-            f"[bold]Name:[/bold] {get_display_name(user)}\n"
-            f"[bold]User ID:[/bold] {user.id}\n"
-            f"[bold]Username:[/bold] @{getattr(user, 'username', 'N/A')}\n"
-            f"[bold]Session File Saved:[/bold] {getattr(client.session, 'filename', 'active session')}",
-            border_style="green",
-            title="Authorized"
-        ))
+        console.print(
+            Panel(
+                f"[bold green]🎉 QR LOGIN SUCCESSFUL![/bold green]\n\n"
+                f"[bold]Name:[/bold] {get_display_name(user)}\n"
+                f"[bold]User ID:[/bold] {user.id}\n"
+                f"[bold]Username:[/bold] @{getattr(user, 'username', 'N/A')}\n"
+                f"[bold]Session File Saved:[/bold] {getattr(client.session, 'filename', 'active session')}",
+                border_style="green",
+                title="Authorized",
+            )
+        )
     except TimeoutError:
         console.print("[red]❌ QR Login timed out without being scanned. Please try again.[/red]")
 
 
-def cmd_login_phone(phone: Optional[str] = None, session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None) -> None:
+def cmd_login_phone(
+    phone: Optional[str] = None,
+    session_name: Optional[str] = None,
+    api_id: Optional[int] = None,
+    api_hash: Optional[str] = None,
+) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
 
@@ -252,32 +256,43 @@ def cmd_login_phone(phone: Optional[str] = None, session_name: Optional[str] = N
     console.print("[bold green]✔ Login successful![/bold green]")
 
 
-def cmd_login_bot(bot_token: Optional[str] = None, session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None) -> None:
+def cmd_login_bot(
+    bot_token: Optional[str] = None,
+    session_name: Optional[str] = None,
+    api_id: Optional[int] = None,
+    api_hash: Optional[str] = None,
+) -> None:
     client = get_client(session_name, api_id, api_hash)
     token = bot_token or questionary.text("Enter Bot Token (from @BotFather):", style=CUSTOM_STYLE).ask()
     client.bot_login(token)
     console.print("[bold green]✔ Bot login successful![/bold green]")
 
 
-def cmd_export_string_session(session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None) -> None:
+def cmd_export_string_session(
+    session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None
+) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
-    
+
     if not client.is_user_authorized():
         console.print("[red]❌ Client is not authorized. Please login first.[/red]")
         return
-        
+
     str_session = StringSession.save(client.session)
-    console.print(Panel(
-        f"[bold green]Base64 StringSession (Telethon & TeleScraper Compatible):[/bold green]\n\n"
-        f"[yellow]{str_session}[/yellow]\n\n"
-        f"[dim]Keep this secret! It grants full access to your Telegram account.[/dim]",
-        border_style="green",
-        title="StringSession Export"
-    ))
+    console.print(
+        Panel(
+            f"[bold green]Base64 StringSession (Telethon & TeleScraper Compatible):[/bold green]\n\n"
+            f"[yellow]{str_session}[/yellow]\n\n"
+            f"[dim]Keep this secret! It grants full access to your Telegram account.[/dim]",
+            border_style="green",
+            title="StringSession Export",
+        )
+    )
 
 
-def cmd_whoami(session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None) -> None:
+def cmd_whoami(
+    session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None
+) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
 
@@ -296,7 +311,7 @@ def cmd_whoami(session_name: Optional[str] = None, api_id: Optional[int] = None,
     table.add_row("Username", f"@{me.username}" if me.username else "None")
     table.add_row("Account Type", "🤖 Bot" if me.is_bot else "👤 User Account")
     table.add_row("Online Status", str(me.status or "N/A"))
-    table.add_row("Session File", str(getattr(client.session, 'filename', 'active session')))
+    table.add_row("Session File", str(getattr(client.session, "filename", "active session")))
 
     console.print(table)
 
@@ -305,7 +320,13 @@ def cmd_whoami(session_name: Optional[str] = None, api_id: Optional[int] = None,
 # 2. Chats, Scraping, Data Extraction & Exporters
 # ==============================================================================
 
-def cmd_list_chats(filter_type: Optional[str] = None, session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None) -> None:
+
+def cmd_list_chats(
+    filter_type: Optional[str] = None,
+    session_name: Optional[str] = None,
+    api_id: Optional[int] = None,
+    api_hash: Optional[str] = None,
+) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
 
@@ -329,7 +350,9 @@ def cmd_list_chats(filter_type: Optional[str] = None, session_name: Optional[str
     console.print(table)
 
 
-def cmd_chat_info(target: str, session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None) -> None:
+def cmd_chat_info(
+    target: str, session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None
+) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
 
@@ -345,7 +368,7 @@ def cmd_chat_info(target: str, session_name: Optional[str] = None, api_id: Optio
     table.add_row("Username", f"@{info.username}" if info.username else "None")
     table.add_row("Subscribers / Members", str(info.participants_count or "N/A"))
     table.add_row("Type", "Channel" if info.is_channel else ("Group" if info.is_group else "Chat"))
-    table.add_row("Description / About", str(getattr(info, 'description', '') or "None"))
+    table.add_row("Description / About", str(getattr(info, "description", "") or "None"))
 
     console.print(table)
 
@@ -360,30 +383,27 @@ def cmd_scrape(
     reverse: bool = False,
     session_name: Optional[str] = None,
     api_id: Optional[int] = None,
-    api_hash: Optional[str] = None
+    api_hash: Optional[str] = None,
 ) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
 
-    console.print(f"[cyan]Scraping up to {limit} messages from [bold]{target}[/bold] (Filter: {filter_type or 'All'}, Search: {search or 'None'})...[/cyan]")
-    
+    console.print(
+        f"[cyan]Scraping up to {limit} messages from [bold]{target}[/bold] (Filter: {filter_type or 'All'}, Search: {search or 'None'})...[/cyan]"
+    )
+
     messages = []
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
         BarColumn(),
         TextColumn("[progress.percentage]{task.completed}/{task.total} msgs"),
-        console=console
+        console=console,
     ) as progress:
         task = progress.add_task("Fetching messages...", total=limit)
-        
+
         for msg in client.iter_messages(
-            target=target,
-            limit=limit,
-            search=search,
-            filter_type=filter_type,
-            reverse=reverse,
-            checkpoint=checkpoint
+            target=target, limit=limit, search=search, filter_type=filter_type, reverse=reverse, checkpoint=checkpoint
         ):
             messages.append(msg)
             progress.update(task, advance=1)
@@ -425,14 +445,14 @@ def cmd_takeout(
     output: Optional[str] = None,
     session_name: Optional[str] = None,
     api_id: Optional[int] = None,
-    api_hash: Optional[str] = None
+    api_hash: Optional[str] = None,
 ) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
 
     console.print(f"[bold cyan]Starting High-Speed Takeout Session for {target}...[/bold cyan]")
     messages = []
-    
+
     with client.takeout(message_channels=True, message_chats=True, files=True) as takeout:
         for msg in takeout.iter_messages(target, limit=limit):
             messages.append(msg)
@@ -443,13 +463,20 @@ def cmd_takeout(
         console.print(f"[green]Saved to {output}[/green]")
 
 
-def cmd_comments(target: str, post_id: int, limit: int = 50, session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None) -> None:
+def cmd_comments(
+    target: str,
+    post_id: int,
+    limit: int = 50,
+    session_name: Optional[str] = None,
+    api_id: Optional[int] = None,
+    api_hash: Optional[str] = None,
+) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
 
     console.print(f"[cyan]Scraping comments for post [bold]#{post_id}[/bold] in [bold]{target}[/bold]...[/cyan]")
     comments = []
-    
+
     for c in client.iter_comments(target, post_id=post_id, limit=limit):
         comments.append(c)
 
@@ -466,13 +493,20 @@ def cmd_comments(target: str, post_id: int, limit: int = 50, session_name: Optio
     console.print(table)
 
 
-def cmd_members(target: str, limit: int = 100, output: Optional[str] = None, session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None) -> None:
+def cmd_members(
+    target: str,
+    limit: int = 100,
+    output: Optional[str] = None,
+    session_name: Optional[str] = None,
+    api_id: Optional[int] = None,
+    api_hash: Optional[str] = None,
+) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
 
     console.print(f"[cyan]Scraping up to {limit} members from [bold]{target}[/bold]...[/cyan]")
     members = []
-    
+
     with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"), console=console) as progress:
         progress.add_task("Fetching participants...", total=None)
         for mem in client.iter_members(target, limit=limit):
@@ -503,7 +537,7 @@ def cmd_members(target: str, limit: int = 100, output: Optional[str] = None, ses
                 "first_name": m.first_name,
                 "last_name": m.last_name,
                 "is_bot": m.is_bot,
-                "status": m.status
+                "status": m.status,
             }
             for m in members
         ]
@@ -512,28 +546,36 @@ def cmd_members(target: str, limit: int = 100, output: Optional[str] = None, ses
         console.print(f"[bold green]✔ Saved member list to {output}[/bold green]")
 
 
-def cmd_extract(target: str, limit: int = 100, session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None) -> None:
+def cmd_extract(
+    target: str,
+    limit: int = 100,
+    session_name: Optional[str] = None,
+    api_id: Optional[int] = None,
+    api_hash: Optional[str] = None,
+) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
 
     console.print(f"[cyan]Scanning {limit} messages in [bold]{target}[/bold] for sensitive & structured data...[/cyan]")
     data = client.extract_from_messages(target, limit=limit)
 
-    console.print(Panel(
-        f"[bold cyan]🔍 Entity Extraction Results for {target}[/bold cyan]\n\n"
-        f"[bold]📧 Emails Found ({len(data.get('emails', []))}):[/bold] {', '.join(data.get('emails', [])) or 'None'}\n"
-        f"[bold]📞 Phone Numbers ({len(data.get('phones', []))}):[/bold] {', '.join(data.get('phones', [])) or 'None'}\n"
-        f"[bold]🔗 URLs ({len(data.get('urls', []))}):[/bold] {len(data.get('urls', []))} discovered\n\n"
-        f"[bold yellow]💰 Crypto Wallets Discovered:[/bold yellow]\n"
-        f"  • Bitcoin (BTC): {len(data.get('wallets', {}).get('bitcoin', []))}\n"
-        f"  • Ethereum (ETH): {len(data.get('wallets', {}).get('ethereum', []))}\n"
-        f"  • USDT TRC20: {len(data.get('wallets', {}).get('tron', []))}\n"
-        f"  • TON: {len(data.get('wallets', {}).get('ton', []))}\n"
-        f"  • Solana (SOL): {len(data.get('wallets', {}).get('solana', []))}",
-        border_style="yellow"
-    ))
+    console.print(
+        Panel(
+            f"[bold cyan]🔍 Entity Extraction Results for {target}[/bold cyan]\n\n"
+            f"[bold]📧 Emails Found ({len(data.get('emails', []))}):[/bold] {', '.join(data.get('emails', [])) or 'None'}\n"
+            f"[bold]📞 Phone Numbers ({len(data.get('phones', []))}):[/bold] {', '.join(data.get('phones', [])) or 'None'}\n"
+            f"[bold]🔗 URLs ({len(data.get('urls', []))}):[/bold] {len(data.get('urls', []))} discovered\n\n"
+            f"[bold yellow]💰 Crypto Wallets Discovered:[/bold yellow]\n"
+            f"  • Bitcoin (BTC): {len(data.get('wallets', {}).get('bitcoin', []))}\n"
+            f"  • Ethereum (ETH): {len(data.get('wallets', {}).get('ethereum', []))}\n"
+            f"  • USDT TRC20: {len(data.get('wallets', {}).get('tron', []))}\n"
+            f"  • TON: {len(data.get('wallets', {}).get('ton', []))}\n"
+            f"  • Solana (SOL): {len(data.get('wallets', {}).get('solana', []))}",
+            border_style="yellow",
+        )
+    )
 
-    wallets = data.get('wallets', {})
+    wallets = data.get("wallets", {})
     for chain, addrs in wallets.items():
         if addrs:
             console.print(f"\n[bold green]-- {chain.upper()} ({len(addrs)}) --[/bold green]")
@@ -541,11 +583,21 @@ def cmd_extract(target: str, limit: int = 100, session_name: Optional[str] = Non
                 console.print(f"  {a}")
 
 
-def cmd_export(target: str, output: str, format_type: str = "json", limit: int = 500, session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None) -> None:
+def cmd_export(
+    target: str,
+    output: str,
+    format_type: str = "json",
+    limit: int = 500,
+    session_name: Optional[str] = None,
+    api_id: Optional[int] = None,
+    api_hash: Optional[str] = None,
+) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
 
-    console.print(f"[cyan]Exporting {limit} messages from [bold]{target}[/bold] to [bold]{output}[/bold] ({format_type})...[/cyan]")
+    console.print(
+        f"[cyan]Exporting {limit} messages from [bold]{target}[/bold] to [bold]{output}[/bold] ({format_type})...[/cyan]"
+    )
     fmt = format_type.lower()
     if fmt in ("xlsx", "excel"):
         client.export_to_excel(target, output, limit=limit)
@@ -563,20 +615,28 @@ def cmd_export(target: str, output: str, format_type: str = "json", limit: int =
 # 3. Media & File Downloader / Uploader
 # ==============================================================================
 
-def cmd_download_media(target: str, limit: int = 10, output_dir: str = "./downloads", media_types: Optional[str] = None, session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None) -> None:
+
+def cmd_download_media(
+    target: str,
+    limit: int = 10,
+    output_dir: str = "./downloads",
+    media_types: Optional[str] = None,
+    session_name: Optional[str] = None,
+    api_id: Optional[int] = None,
+    api_hash: Optional[str] = None,
+) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
 
-    m_types = media_types.split(",") if isinstance(media_types, str) else (media_types or ["photo", "document", "video"])
-    console.print(f"[cyan]Downloading media from [bold]{target}[/bold] into [bold]{output_dir}[/bold] (Limit: {limit}, Types: {m_types})...[/cyan]")
-    
-    os.makedirs(output_dir, exist_ok=True)
-    paths = client.download_all_media(
-        target=target,
-        output_dir=output_dir,
-        limit=limit,
-        media_types=m_types
+    m_types = (
+        media_types.split(",") if isinstance(media_types, str) else (media_types or ["photo", "document", "video"])
     )
+    console.print(
+        f"[cyan]Downloading media from [bold]{target}[/bold] into [bold]{output_dir}[/bold] (Limit: {limit}, Types: {m_types})...[/cyan]"
+    )
+
+    os.makedirs(output_dir, exist_ok=True)
+    paths = client.download_all_media(target=target, output_dir=output_dir, limit=limit, media_types=m_types)
     console.print(f"[bold green]✔ Downloaded {len(paths)} files to {output_dir}[/bold green]")
 
 
@@ -587,7 +647,7 @@ def cmd_avatar_manager(
     output_dir: str = "./avatars",
     session_name: Optional[str] = None,
     api_id: Optional[int] = None,
-    api_hash: Optional[str] = None
+    api_hash: Optional[str] = None,
 ) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
@@ -619,7 +679,15 @@ def cmd_avatar_manager(
             console.print("[yellow]No profile photos to delete.[/yellow]")
 
 
-def cmd_upload_file(target: str, file_path: str, caption: Optional[str] = None, workers: int = 4, session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None) -> None:
+def cmd_upload_file(
+    target: str,
+    file_path: str,
+    caption: Optional[str] = None,
+    workers: int = 4,
+    session_name: Optional[str] = None,
+    api_id: Optional[int] = None,
+    api_hash: Optional[str] = None,
+) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
 
@@ -629,7 +697,9 @@ def cmd_upload_file(target: str, file_path: str, caption: Optional[str] = None, 
         return
 
     file_size = p.stat().st_size
-    console.print(f"[cyan]Uploading [bold]{p.name}[/bold] ({file_size / (1024*1024):.2f} MB) to [bold]{target}[/bold] using {workers} workers...[/cyan]")
+    console.print(
+        f"[cyan]Uploading [bold]{p.name}[/bold] ({file_size / (1024 * 1024):.2f} MB) to [bold]{target}[/bold] using {workers} workers...[/cyan]"
+    )
 
     with Progress(
         SpinnerColumn(),
@@ -638,7 +708,7 @@ def cmd_upload_file(target: str, file_path: str, caption: Optional[str] = None, 
         TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
         TransferSpeedColumn(),
         TimeRemainingColumn(),
-        console=console
+        console=console,
     ) as progress:
         task = progress.add_task("Uploading...", total=file_size)
 
@@ -646,11 +716,7 @@ def cmd_upload_file(target: str, file_path: str, caption: Optional[str] = None, 
             progress.update(task, completed=uploaded)
 
         msg = client.send_file(
-            target=target,
-            file=str(p),
-            caption=caption or "",
-            workers=workers,
-            progress_callback=on_prog
+            target=target, file=str(p), caption=caption or "", workers=workers, progress_callback=on_prog
         )
 
     console.print(f"[bold green]✔ File successfully uploaded & sent! (Message ID: {msg.id})[/bold green]")
@@ -660,42 +726,84 @@ def cmd_upload_file(target: str, file_path: str, caption: Optional[str] = None, 
 # 4. Message Operations
 # ==============================================================================
 
-def cmd_send_message(target: str, message: str, reply_to: Optional[int] = None, session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None) -> None:
+
+def cmd_send_message(
+    target: str,
+    message: str,
+    reply_to: Optional[int] = None,
+    session_name: Optional[str] = None,
+    api_id: Optional[int] = None,
+    api_hash: Optional[str] = None,
+) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
     msg = client.send_message(target, message, reply_to=reply_to)
     console.print(f"[bold green]✔ Message sent! (ID: {msg.id})[/bold green]")
 
 
-def cmd_edit_message(target: str, message_id: int, new_text: str, session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None) -> None:
+def cmd_edit_message(
+    target: str,
+    message_id: int,
+    new_text: str,
+    session_name: Optional[str] = None,
+    api_id: Optional[int] = None,
+    api_hash: Optional[str] = None,
+) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
     client.edit_message(target, message_id, new_text)
     console.print(f"[bold green]✔ Message #{message_id} edited successfully![/bold green]")
 
 
-def cmd_delete_messages(target: str, message_ids: List[int], revoke: bool = True, session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None) -> None:
+def cmd_delete_messages(
+    target: str,
+    message_ids: List[int],
+    revoke: bool = True,
+    session_name: Optional[str] = None,
+    api_id: Optional[int] = None,
+    api_hash: Optional[str] = None,
+) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
     client.delete_messages(target, message_ids, revoke=revoke)
     console.print(f"[bold green]✔ Deleted messages {message_ids} from {target}[/bold green]")
 
 
-def cmd_pin_message(target: str, message_id: int, notify: bool = False, session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None) -> None:
+def cmd_pin_message(
+    target: str,
+    message_id: int,
+    notify: bool = False,
+    session_name: Optional[str] = None,
+    api_id: Optional[int] = None,
+    api_hash: Optional[str] = None,
+) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
     client.pin_message(target, message_id, notify=notify)
     console.print(f"[bold green]✔ Message #{message_id} pinned in {target}[/bold green]")
 
 
-def cmd_send_reaction(target: str, message_id: int, reaction: str = "🔥", session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None) -> None:
+def cmd_send_reaction(
+    target: str,
+    message_id: int,
+    reaction: str = "🔥",
+    session_name: Optional[str] = None,
+    api_id: Optional[int] = None,
+    api_hash: Optional[str] = None,
+) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
     client.send_reaction(target, message_id, reaction=reaction)
     console.print(f"[bold green]✔ Sent reaction {reaction} to message #{message_id}[/bold green]")
 
 
-def cmd_save_draft(target: str, message: str, session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None) -> None:
+def cmd_save_draft(
+    target: str,
+    message: str,
+    session_name: Optional[str] = None,
+    api_id: Optional[int] = None,
+    api_hash: Optional[str] = None,
+) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
     client.save_draft(target, message)
@@ -706,35 +814,68 @@ def cmd_save_draft(target: str, message: str, session_name: Optional[str] = None
 # 5. Group & Channel Administration & Moderation
 # ==============================================================================
 
-def cmd_create_channel(title: str, about: str = "", session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None) -> None:
+
+def cmd_create_channel(
+    title: str,
+    about: str = "",
+    session_name: Optional[str] = None,
+    api_id: Optional[int] = None,
+    api_hash: Optional[str] = None,
+) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
     ch = client.create_channel(title=title, about=about)
     console.print(f"[bold green]✔ Broadcast Channel created: {title} (ID: {getattr(ch, 'id', 'created')})[/bold green]")
 
 
-def cmd_create_group(title: str, users: Optional[List[str]] = None, session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None) -> None:
+def cmd_create_group(
+    title: str,
+    users: Optional[List[str]] = None,
+    session_name: Optional[str] = None,
+    api_id: Optional[int] = None,
+    api_hash: Optional[str] = None,
+) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
     grp = client.create_group(title=title, users=users)
     console.print(f"[bold green]✔ Supergroup created: {title} (ID: {getattr(grp, 'id', 'created')})[/bold green]")
 
 
-def cmd_kick_user(target: str, user: str, session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None) -> None:
+def cmd_kick_user(
+    target: str,
+    user: str,
+    session_name: Optional[str] = None,
+    api_id: Optional[int] = None,
+    api_hash: Optional[str] = None,
+) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
     client.kick_participant(target, user)
     console.print(f"[bold green]✔ Kicked user {user} from {target}[/bold green]")
 
 
-def cmd_edit_permissions(target: str, user: str, send_messages: bool = True, send_media: bool = True, session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None) -> None:
+def cmd_edit_permissions(
+    target: str,
+    user: str,
+    send_messages: bool = True,
+    send_media: bool = True,
+    session_name: Optional[str] = None,
+    api_id: Optional[int] = None,
+    api_hash: Optional[str] = None,
+) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
     client.edit_permissions(target, user, send_messages=send_messages, send_media=send_media)
     console.print(f"[bold green]✔ Updated permissions for {user} in {target}[/bold green]")
 
 
-def cmd_admin_log(target: str, limit: int = 50, session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None) -> None:
+def cmd_admin_log(
+    target: str,
+    limit: int = 50,
+    session_name: Optional[str] = None,
+    api_id: Optional[int] = None,
+    api_hash: Optional[str] = None,
+) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
     events = client.get_admin_log(target, limit=limit)
@@ -744,11 +885,23 @@ def cmd_admin_log(target: str, limit: int = 50, session_name: Optional[str] = No
     table.add_column("Action", style="white")
 
     for ev in events:
-        table.add_row(str(getattr(ev, 'date', '')), str(getattr(ev, 'user_id', '')), str(type(getattr(ev, 'action', None)).__name__))
+        table.add_row(
+            str(getattr(ev, "date", "")),
+            str(getattr(ev, "user_id", "")),
+            str(type(getattr(ev, "action", None)).__name__),
+        )
     console.print(table)
 
 
-def cmd_invite_link_manager(action: str, target: str, title: Optional[str] = None, link: Optional[str] = None, session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None) -> None:
+def cmd_invite_link_manager(
+    action: str,
+    target: str,
+    title: Optional[str] = None,
+    link: Optional[str] = None,
+    session_name: Optional[str] = None,
+    api_id: Optional[int] = None,
+    api_hash: Optional[str] = None,
+) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
 
@@ -767,8 +920,12 @@ def cmd_invite_link_manager(action: str, target: str, title: Optional[str] = Non
         table.add_column("Title", style="white")
         table.add_column("Link", style="bold green")
         table.add_column("Usage", style="yellow")
-        for l in links:
-            table.add_row(str(getattr(l, 'title', '-')), str(getattr(l, 'link', '-')), f"{getattr(l, 'usage', 0)}/{getattr(l, 'usage_limit', '∞')}")
+        for link_item in links:
+            table.add_row(
+                str(getattr(link_item, "title", "-")),
+                str(getattr(link_item, "link", "-")),
+                f"{getattr(link_item, 'usage', 0)}/{getattr(link_item, 'usage_limit', '∞')}",
+            )
         console.print(table)
 
 
@@ -776,7 +933,17 @@ def cmd_invite_link_manager(action: str, target: str, title: Optional[str] = Non
 # 6. Telegram Stories
 # ==============================================================================
 
-def cmd_stories(action: str, target: str = "me", file_path: Optional[str] = None, caption: Optional[str] = None, story_id: Optional[int] = None, session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None) -> None:
+
+def cmd_stories(
+    action: str,
+    target: str = "me",
+    file_path: Optional[str] = None,
+    caption: Optional[str] = None,
+    story_id: Optional[int] = None,
+    session_name: Optional[str] = None,
+    api_id: Optional[int] = None,
+    api_hash: Optional[str] = None,
+) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
 
@@ -804,7 +971,15 @@ def cmd_stories(action: str, target: str = "me", file_path: Optional[str] = None
 # 7. State Sync & Gap Recovery
 # ==============================================================================
 
-def cmd_state_sync(action: str = "state", channel: Optional[str] = None, pts: Optional[int] = None, session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None) -> None:
+
+def cmd_state_sync(
+    action: str = "state",
+    channel: Optional[str] = None,
+    pts: Optional[int] = None,
+    session_name: Optional[str] = None,
+    api_id: Optional[int] = None,
+    api_hash: Optional[str] = None,
+) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
 
@@ -835,13 +1010,24 @@ def cmd_state_sync(action: str = "state", channel: Optional[str] = None, pts: Op
 # 8. VoIP Signalling & Secret Chats
 # ==============================================================================
 
-def cmd_voip(action: str, target: Optional[str] = None, call_id: Optional[int] = None, access_hash: Optional[int] = None, session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None) -> None:
+
+def cmd_voip(
+    action: str,
+    target: Optional[str] = None,
+    call_id: Optional[int] = None,
+    access_hash: Optional[int] = None,
+    session_name: Optional[str] = None,
+    api_id: Optional[int] = None,
+    api_hash: Optional[str] = None,
+) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
 
     if action == "config":
         cfg = client.voip.get_call_config()
-        console.print(Panel(f"[bold cyan]VoIP Configuration & STUN/TURN Servers:[/bold cyan]\n\n{cfg}", border_style="blue"))
+        console.print(
+            Panel(f"[bold cyan]VoIP Configuration & STUN/TURN Servers:[/bold cyan]\n\n{cfg}", border_style="blue")
+        )
     elif action == "request":
         tgt = target or questionary.text("Enter username to call:", style=CUSTOM_STYLE).ask()
         if tgt:
@@ -859,7 +1045,12 @@ def cmd_voip(action: str, target: Optional[str] = None, call_id: Optional[int] =
             console.print(f"[bold green]✔ Call #{call_id} discarded.[/bold green]")
 
 
-def cmd_secret_chat(target: Optional[str] = None, session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None) -> None:
+def cmd_secret_chat(
+    target: Optional[str] = None,
+    session_name: Optional[str] = None,
+    api_id: Optional[int] = None,
+    api_hash: Optional[str] = None,
+) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
     tgt = target or questionary.text("Enter target username for E2EE Secret Chat:", style=CUSTOM_STYLE).ask()
@@ -873,7 +1064,10 @@ def cmd_secret_chat(target: Optional[str] = None, session_name: Optional[str] = 
 # 9. Session & Device Administration
 # ==============================================================================
 
-def cmd_list_sessions(session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None) -> None:
+
+def cmd_list_sessions(
+    session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None
+) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
 
@@ -887,28 +1081,29 @@ def cmd_list_sessions(session_name: Optional[str] = None, api_id: Optional[int] 
     table.add_column("Current?", style="bold green")
 
     for a in auths:
-        is_cur = "✔ YES" if getattr(a, 'current', False) else ""
+        is_cur = "✔ YES" if getattr(a, "current", False) else ""
         table.add_row(
-            str(a.hash),
-            f"{a.device_model} ({a.app_name} {a.app_version})",
-            a.platform,
-            a.ip,
-            a.country,
-            is_cur
+            str(a.hash), f"{a.device_model} ({a.app_name} {a.app_version})", a.platform, a.ip, a.country, is_cur
         )
 
     console.print(table)
 
 
-def cmd_terminate_session(auth_hash: int, session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None) -> None:
+def cmd_terminate_session(
+    auth_hash: int, session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None
+) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
     res = client.terminate_session(hash=auth_hash)
     console.print(f"[bold green]✔ Session with hash {auth_hash} terminated: {res}[/bold green]")
 
 
-def cmd_reset_sessions(session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None) -> None:
-    if questionary.confirm("Are you sure you want to terminate all other active Telegram sessions?", default=False, style=CUSTOM_STYLE).ask():
+def cmd_reset_sessions(
+    session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None
+) -> None:
+    if questionary.confirm(
+        "Are you sure you want to terminate all other active Telegram sessions?", default=False, style=CUSTOM_STYLE
+    ).ask():
         client = get_client(session_name, api_id, api_hash)
         client.connect()
         res = client.reset_authorizations()
@@ -918,7 +1113,9 @@ def cmd_reset_sessions(session_name: Optional[str] = None, api_id: Optional[int]
             console.print("[red]❌ Could not reset authorizations.[/red]")
 
 
-def cmd_logout(session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None) -> None:
+def cmd_logout(
+    session_name: Optional[str] = None, api_id: Optional[int] = None, api_hash: Optional[str] = None
+) -> None:
     if questionary.confirm("Are you sure you want to log out from Telegram?", default=False, style=CUSTOM_STYLE).ask():
         client = get_client(session_name, api_id, api_hash)
         client.connect()
@@ -936,7 +1133,7 @@ def cmd_contacts(
     user: Optional[str] = None,
     session_name: Optional[str] = None,
     api_id: Optional[int] = None,
-    api_hash: Optional[str] = None
+    api_hash: Optional[str] = None,
 ) -> None:
     client = get_client(session_name, api_id, api_hash)
     client.connect()
@@ -957,7 +1154,7 @@ def cmd_contacts(
                 c.full_name or "Unknown",
                 f"@{c.username}" if c.username else "-",
                 c.phone or "-",
-                c.status or "-"
+                c.status or "-",
             )
         console.print(table)
 
@@ -973,11 +1170,7 @@ def cmd_contacts(
         table.add_column("Name", style="bold white")
         table.add_column("Username", style="magenta")
         for u in users:
-            table.add_row(
-                str(u.user_id),
-                u.full_name or "Unknown",
-                f"@{u.username}" if u.username else "-"
-            )
+            table.add_row(str(u.user_id), u.full_name or "Unknown", f"@{u.username}" if u.username else "-")
         console.print(table)
 
     elif action == "add":
@@ -1001,11 +1194,7 @@ def cmd_contacts(
         table.add_column("Name", style="bold white")
         table.add_column("Username", style="magenta")
         for b in blocked:
-            table.add_row(
-                str(b.user_id),
-                b.full_name or "Unknown",
-                f"@{b.username}" if b.username else "-"
-            )
+            table.add_row(str(b.user_id), b.full_name or "Unknown", f"@{b.username}" if b.username else "-")
         console.print(table)
 
     elif action == "block":
@@ -1027,32 +1216,33 @@ def cmd_contacts(
 # Interactive Keyboard-Driven TUI Menu (with Arrow Keys ↑/↓)
 # ==============================================================================
 
+
 def interactive_menu():
     while True:
         cfg = load_config()
         cur_session = cfg.get("session_name", DEFAULT_SESSION_NAME)
 
         console.clear()
-        console.print(Panel(
-            "[bold cyan]⚡ TELESCRAPER MASTER CONTROL CENTER ⚡[/bold cyan]\n"
-            f"[dim]100% Pure Synchronous MTProto 2.0 Engine | Active Session: [bold green]{cur_session}.session[/bold green][/dim]\n"
-            "[italic cyan]Use Arrow Keys (↑ / ↓) to navigate, Enter to select, Ctrl+C to exit.[/italic cyan]",
-            border_style="cyan"
-        ))
+        console.print(
+            Panel(
+                "[bold cyan]⚡ TELESCRAPER MASTER CONTROL CENTER ⚡[/bold cyan]\n"
+                f"[dim]100% Pure Synchronous MTProto 2.0 Engine | Active Session: [bold green]{cur_session}.session[/bold green][/dim]\n"
+                "[italic cyan]Use Arrow Keys (↑ / ↓) to navigate, Enter to select, Ctrl+C to exit.[/italic cyan]",
+                border_style="cyan",
+            )
+        )
 
         choice = questionary.select(
             "Select an Operation:",
             choices=[
                 Separator("--- 🖥️ GRAPHICAL TELEGRAM TUI ---"),
                 Choice("🚀  Launch Full Telegram TUI (Textual Graphical Desktop)", value="tui"),
-
                 Separator("--- 🔑 AUTHENTICATION & SESSIONS ---"),
                 Choice("📱  QR Code Login (Scan with Telegram App & Auto 2FA)", value="qr_login"),
                 Choice("📞  Phone Number & OTP Login (SMS / App Code)", value="phone_login"),
                 Choice("🤖  Bot Token Login (from @BotFather)", value="bot_login"),
                 Choice("👤  My Profile & Account Status (WhoAmI)", value="whoami"),
                 Choice("🔑  Export Base64 StringSession (Telethon Compatible)", value="string_session"),
-
                 Separator("--- 🔍 SCRAPING & DATA DISCOVERY ---"),
                 Choice("📋  List Dialogs, Channels & Groups", value="chats"),
                 Choice("ℹ️   Get Chat / Channel Metadata & Subscriber Count", value="info"),
@@ -1062,32 +1252,28 @@ def interactive_menu():
                 Choice("👥  Scrape Group Members (Participants List)", value="members"),
                 Choice("💰  Extract Crypto Wallets (BTC, ETH, TRC20, TON, SOL) & Contacts", value="extract"),
                 Choice("📦  Export Channel Dataset (Excel, SQLite, CSV, JSON)", value="export"),
-
                 Separator("--- ⬇️ MEDIA & 2GB UPLOADS ---"),
                 Choice("⬇️   Bulk Parallel Media Downloader (Photos, Videos, Docs)", value="download_media"),
                 Choice("🖼️   Profile Avatar Manager (Download, Upload new, Delete)", value="avatar"),
                 Choice("⬆️   Upload & Send Files (Up to 2GB with chunk workers)", value="upload"),
                 Choice("✉️   Send Text Message / Reaction / Pin / Draft", value="message_ops"),
-
                 Separator("--- 🛡️ MODERATION & ADMIN ---"),
                 Choice("📢  Create Broadcast Channel or Supergroup", value="create_chat"),
                 Choice("🚫  Moderate Participants (Kick, Ban, Edit Permissions)", value="mod_user"),
                 Choice("🛡️   Inspect Admin Audit Log", value="admin_log"),
                 Choice("🔗  Manage Custom Invite Links (Create, Revoke, List)", value="invite_links"),
-
                 Separator("--- ⚡ ADVANCED MTPROTO ENGINE ---"),
                 Choice("📖  Telegram Stories Engine (View, Post, Delete Stories)", value="stories"),
                 Choice("🔄  State Synchronization & Gap Recovery (PTS, QTS, Updates)", value="state_sync"),
                 Choice("📞  VoIP Call Signalling & STUN/TURN Config", value="voip"),
                 Choice("🔒  End-to-End Encrypted Secret Chat", value="secret_chat"),
-
                 Separator("--- 💻 DEVICES & ACCOUNT SETTINGS ---"),
                 Choice("💻  Manage Active Devices & Remote Sessions", value="devices"),
                 Choice("⚙️   Switch Session / Edit Credentials", value="switch_session"),
                 Choice("🚪  Logout / Exit", value="exit"),
             ],
             style=CUSTOM_STYLE,
-            use_shortcuts=True
+            use_shortcuts=True,
         ).ask()
 
         if choice is None or choice == "exit":
@@ -1101,6 +1287,7 @@ def interactive_menu():
 
             if choice == "tui":
                 from .tui import run_tui
+
                 run_tui(client)
                 return
 
@@ -1120,7 +1307,9 @@ def interactive_menu():
                 cmd_export_string_session()
 
             elif choice == "chats":
-                flt = questionary.select("Filter Dialogs:", choices=["All", "Channels only", "Groups only"], style=CUSTOM_STYLE).ask()
+                flt = questionary.select(
+                    "Filter Dialogs:", choices=["All", "Channels only", "Groups only"], style=CUSTOM_STYLE
+                ).ask()
                 flt_val = "channel" if flt == "Channels only" else ("group" if flt == "Groups only" else None)
                 cmd_list_chats(filter_type=flt_val)
 
@@ -1133,8 +1322,10 @@ def interactive_menu():
                 tgt = pick_chat_interactively(client)
                 if tgt:
                     lim = questionary.text("Maximum messages to scrape:", default="50", style=CUSTOM_STYLE).ask()
-                    srch = questionary.text("Search keyword (optional, enter to skip):", default="", style=CUSTOM_STYLE).ask()
-                    
+                    srch = questionary.text(
+                        "Search keyword (optional, enter to skip):", default="", style=CUSTOM_STYLE
+                    ).ask()
+
                     filter_choice = questionary.select(
                         "Select Server-Side Filter:",
                         choices=[
@@ -1148,23 +1339,27 @@ def interactive_menu():
                             Choice("📌 Pinned Messages", value="pinned"),
                             Choice("✨ GIFs & Animations", value="gifs"),
                         ],
-                        style=CUSTOM_STYLE
+                        style=CUSTOM_STYLE,
                     ).ask()
 
-                    out = questionary.text("Export file path (e.g. data.xlsx or messages.json, optional):", default="", style=CUSTOM_STYLE).ask()
+                    out = questionary.text(
+                        "Export file path (e.g. data.xlsx or messages.json, optional):", default="", style=CUSTOM_STYLE
+                    ).ask()
                     cmd_scrape(
                         target=tgt,
                         limit=int(lim) if lim.isdigit() else 50,
                         search=srch or None,
                         filter_type=filter_choice,
-                        output=out or None
+                        output=out or None,
                     )
 
             elif choice == "takeout":
                 tgt = pick_chat_interactively(client)
                 if tgt:
                     lim = questionary.text("Maximum messages for Takeout:", default="1000", style=CUSTOM_STYLE).ask()
-                    out = questionary.text("Export JSON file path:", default=f"{tgt}_takeout.json", style=CUSTOM_STYLE).ask()
+                    out = questionary.text(
+                        "Export JSON file path:", default=f"{tgt}_takeout.json", style=CUSTOM_STYLE
+                    ).ask()
                     cmd_takeout(target=tgt, limit=int(lim) if lim.isdigit() else 1000, output=out or None)
 
             elif choice == "comments":
@@ -1199,9 +1394,9 @@ def interactive_menu():
                             Choice("📄 JSON Dataset (.json)", value="json"),
                             Choice("📝 CSV File (.csv)", value="csv"),
                         ],
-                        style=CUSTOM_STYLE
+                        style=CUSTOM_STYLE,
                     ).ask()
-                    
+
                     default_out = f"{tgt}_export.{fmt if fmt != 'sqlite' else 'db'}"
                     out = questionary.text("Output file path:", default=default_out, style=CUSTOM_STYLE).ask()
                     lim = questionary.text("Max messages to export:", default="500", style=CUSTOM_STYLE).ask()
@@ -1221,9 +1416,14 @@ def interactive_menu():
                             Choice("Audio", value="audio"),
                             Choice("Voice", value="voice"),
                         ],
-                        style=CUSTOM_STYLE
+                        style=CUSTOM_STYLE,
                     ).ask()
-                    cmd_download_media(target=tgt, limit=int(lim) if lim.isdigit() else 10, output_dir=out_dir, media_types=",".join(m_types or ["photo"]))
+                    cmd_download_media(
+                        target=tgt,
+                        limit=int(lim) if lim.isdigit() else 10,
+                        output_dir=out_dir,
+                        media_types=",".join(m_types or ["photo"]),
+                    )
 
             elif choice == "avatar":
                 act = questionary.select(
@@ -1234,9 +1434,9 @@ def interactive_menu():
                         Choice("📜 View Photo History", value="history"),
                         Choice("🗑️ Delete Latest Avatar", value="delete"),
                     ],
-                    style=CUSTOM_STYLE
+                    style=CUSTOM_STYLE,
                 ).ask()
-                
+
                 tgt = questionary.text("Target user (default 'me'):", default="me", style=CUSTOM_STYLE).ask()
                 if act == "upload":
                     fp = questionary.text("Path to image file:", style=CUSTOM_STYLE).ask()
@@ -1249,7 +1449,11 @@ def interactive_menu():
                 if tgt:
                     fp = questionary.text("Enter path of file to upload:", style=CUSTOM_STYLE).ask()
                     cap = questionary.text("Caption (optional):", default="", style=CUSTOM_STYLE).ask()
-                    workers = questionary.select("Parallel Chunk Workers:", choices=["1 (Standard)", "2 (Fast)", "4 (Ultra Fast 4x)", "8 (Maximum)"], style=CUSTOM_STYLE).ask()
+                    workers = questionary.select(
+                        "Parallel Chunk Workers:",
+                        choices=["1 (Standard)", "2 (Fast)", "4 (Ultra Fast 4x)", "8 (Maximum)"],
+                        style=CUSTOM_STYLE,
+                    ).ask()
                     w_num = int(workers[0]) if workers else 4
                     cmd_upload_file(target=tgt, file_path=fp, caption=cap or None, workers=w_num)
 
@@ -1264,7 +1468,7 @@ def interactive_menu():
                         Choice("🗑️ Delete Message", value="delete"),
                         Choice("📝 Save Draft", value="draft"),
                     ],
-                    style=CUSTOM_STYLE
+                    style=CUSTOM_STYLE,
                 ).ask()
 
                 tgt = pick_chat_interactively(client)
@@ -1274,7 +1478,9 @@ def interactive_menu():
                         cmd_send_message(tgt, txt)
                     elif op == "react":
                         mid = questionary.text("Message ID:", style=CUSTOM_STYLE).ask()
-                        emo = questionary.select("Choose Emoji Reaction:", choices=["🔥", "👍", "❤️", "👏", "🎉", "💩"], style=CUSTOM_STYLE).ask()
+                        emo = questionary.select(
+                            "Choose Emoji Reaction:", choices=["🔥", "👍", "❤️", "👏", "🎉", "💩"], style=CUSTOM_STYLE
+                        ).ask()
                         if mid and mid.isdigit():
                             cmd_send_reaction(tgt, int(mid), reaction=emo)
                     elif op == "pin":
@@ -1295,10 +1501,14 @@ def interactive_menu():
                         cmd_save_draft(tgt, txt)
 
             elif choice == "create_chat":
-                sub = questionary.select("Select Type:", choices=["📢 Broadcast Channel", "👥 Community Supergroup"], style=CUSTOM_STYLE).ask()
+                sub = questionary.select(
+                    "Select Type:", choices=["📢 Broadcast Channel", "👥 Community Supergroup"], style=CUSTOM_STYLE
+                ).ask()
                 tit = questionary.text("Enter Title:", style=CUSTOM_STYLE).ask()
                 if sub.startswith("📢"):
-                    ab = questionary.text("Channel Description / About (optional):", default="", style=CUSTOM_STYLE).ask()
+                    ab = questionary.text(
+                        "Channel Description / About (optional):", default="", style=CUSTOM_STYLE
+                    ).ask()
                     cmd_create_channel(title=tit, about=ab)
                 else:
                     cmd_create_group(title=tit)
@@ -1306,7 +1516,11 @@ def interactive_menu():
             elif choice == "mod_user":
                 tgt = pick_chat_interactively(client)
                 if tgt:
-                    act = questionary.select("Moderation Action:", choices=["👢 Kick User from Group", "🚫 Restrict / Ban Permissions"], style=CUSTOM_STYLE).ask()
+                    act = questionary.select(
+                        "Moderation Action:",
+                        choices=["👢 Kick User from Group", "🚫 Restrict / Ban Permissions"],
+                        style=CUSTOM_STYLE,
+                    ).ask()
                     usr = questionary.text("Target Username or User ID:", style=CUSTOM_STYLE).ask()
                     if act.startswith("👢"):
                         cmd_kick_user(tgt, usr)
@@ -1328,7 +1542,7 @@ def interactive_menu():
                             Choice("✨ Create New Custom Invite Link", value="create"),
                             Choice("❌ Revoke Invite Link", value="revoke"),
                         ],
-                        style=CUSTOM_STYLE
+                        style=CUSTOM_STYLE,
                     ).ask()
                     if act == "create":
                         tit = questionary.text("Title for this link (optional):", default="", style=CUSTOM_STYLE).ask()
@@ -1347,7 +1561,7 @@ def interactive_menu():
                         Choice("📸 Post New Story", value="post"),
                         Choice("🗑️ Delete Story", value="delete"),
                     ],
-                    style=CUSTOM_STYLE
+                    style=CUSTOM_STYLE,
                 ).ask()
                 tgt = questionary.text("Target username (default 'me'):", default="me", style=CUSTOM_STYLE).ask()
                 cmd_stories(action=act, target=tgt)
@@ -1360,7 +1574,7 @@ def interactive_menu():
                         Choice("⚡ Recover Missed Account Updates (Difference)", value="difference"),
                         Choice("📡 Recover Channel Missed Updates", value="channel-diff"),
                     ],
-                    style=CUSTOM_STYLE
+                    style=CUSTOM_STYLE,
                 ).ask()
                 cmd_state_sync(action=act)
 
@@ -1372,12 +1586,14 @@ def interactive_menu():
                         Choice("📞 Request Outgoing Voice/Video Call", value="request"),
                         Choice("❌ Discard / Hang Up Call", value="discard"),
                     ],
-                    style=CUSTOM_STYLE
+                    style=CUSTOM_STYLE,
                 ).ask()
                 cmd_voip(action=act)
 
             elif choice == "secret_chat":
-                tgt = questionary.text("Target username for End-to-End Encrypted (E2EE) Secret Chat:", style=CUSTOM_STYLE).ask()
+                tgt = questionary.text(
+                    "Target username for End-to-End Encrypted (E2EE) Secret Chat:", style=CUSTOM_STYLE
+                ).ask()
                 if tgt:
                     cmd_secret_chat(tgt)
 
@@ -1390,7 +1606,7 @@ def interactive_menu():
                         Choice("🗑️ Terminate Specific Remote Session by Hash", value="term"),
                         Choice("⚠️ Reset ALL Other Remote Sessions", value="reset"),
                     ],
-                    style=CUSTOM_STYLE
+                    style=CUSTOM_STYLE,
                 ).ask()
                 if act == "term":
                     h = questionary.text("Enter session hash to terminate:", style=CUSTOM_STYLE).ask()
@@ -1400,7 +1616,9 @@ def interactive_menu():
                     cmd_reset_sessions()
 
             elif choice == "switch_session":
-                new_s = questionary.text("Enter Session Name to activate/switch to:", default=cur_session, style=CUSTOM_STYLE).ask()
+                new_s = questionary.text(
+                    "Enter Session Name to activate/switch to:", default=cur_session, style=CUSTOM_STYLE
+                ).ask()
                 if new_s:
                     cfg["session_name"] = new_s.strip()
                     save_config(cfg)
@@ -1415,6 +1633,7 @@ def interactive_menu():
 # ==============================================================================
 # Argument Parsing CLI Entrypoint
 # ==============================================================================
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -1431,16 +1650,21 @@ Examples:
   python3 -m telescraper extract crypto_channel     # Extract crypto wallets
   python3 -m telescraper export news output.xlsx    # Export to Excel
   python3 -m telescraper upload me --file dump.zip  # 4x fast 2GB file upload
-        """
+        """,
     )
-    
+
     # Global options
     parser.add_argument("-i", "--interactive", action="store_true", help="Launch interactive terminal menu")
     parser.add_argument("--tui", action="store_true", help="Launch Telegram Textual Desktop TUI")
     parser.add_argument("--session", help="Session file name")
     parser.add_argument("--api-id", type=int, help="Telegram API ID")
     parser.add_argument("--api-hash", help="Telegram API Hash")
-    parser.add_argument("--transport", default="intermediate", choices=list(TRANSPORTS_MAP.keys()), help="Anti-censorship MTProto transport")
+    parser.add_argument(
+        "--transport",
+        default="intermediate",
+        choices=list(TRANSPORTS_MAP.keys()),
+        help="Anti-censorship MTProto transport",
+    )
 
     subparsers = parser.add_subparsers(dest="command", help="Available subcommands")
 
@@ -1475,7 +1699,11 @@ Examples:
     p_scrape.add_argument("target", help="Username or ID")
     p_scrape.add_argument("--limit", type=int, default=50, help="Max messages to scrape")
     p_scrape.add_argument("--search", help="Search keyword")
-    p_scrape.add_argument("--filter", choices=["photos", "videos", "documents", "audio", "voice", "urls", "round_videos", "gifs", "pinned"], help="Server-side filter")
+    p_scrape.add_argument(
+        "--filter",
+        choices=["photos", "videos", "documents", "audio", "voice", "urls", "round_videos", "gifs", "pinned"],
+        help="Server-side filter",
+    )
     p_scrape.add_argument("--checkpoint", help="Checkpoint file for resumable scraping")
     p_scrape.add_argument("--output", help="Output file path (.json, .csv, .xlsx, .db)")
     p_scrape.add_argument("--reverse", action="store_true", help="Scrape oldest to newest")
@@ -1507,7 +1735,9 @@ Examples:
     p_exp = subparsers.add_parser("export", help="Export channel data to Excel/JSON/CSV/SQLite")
     p_exp.add_argument("target", help="Channel username")
     p_exp.add_argument("output", help="Output file path")
-    p_exp.add_argument("--format", default="json", choices=["json", "csv", "xlsx", "excel", "sqlite", "db"], help="Export format")
+    p_exp.add_argument(
+        "--format", default="json", choices=["json", "csv", "xlsx", "excel", "sqlite", "db"], help="Export format"
+    )
     p_exp.add_argument("--limit", type=int, default=500, help="Max messages")
 
     # 13. download
@@ -1562,7 +1792,9 @@ Examples:
 
     # 21. admin
     p_adm = subparsers.add_parser("admin", help="Group & channel administration")
-    p_adm.add_argument("action", choices=["create-channel", "create-group", "kick", "restrict", "log"], help="Admin action")
+    p_adm.add_argument(
+        "action", choices=["create-channel", "create-group", "kick", "restrict", "log"], help="Admin action"
+    )
     p_adm.add_argument("--target", help="Chat / Channel target")
     p_adm.add_argument("--title", help="Channel/Group title")
     p_adm.add_argument("--about", default="", help="Channel description")
@@ -1586,7 +1818,9 @@ Examples:
 
     # 24. state
     p_state = subparsers.add_parser("state", help="State synchronization & gap recovery")
-    p_state.add_argument("--action", default="state", choices=["state", "difference", "channel-diff"], help="Sync action")
+    p_state.add_argument(
+        "--action", default="state", choices=["state", "difference", "channel-diff"], help="Sync action"
+    )
     p_state.add_argument("--channel", help="Channel for channel difference")
     p_state.add_argument("--pts", type=int, help="PTS sequence value")
 
@@ -1616,8 +1850,19 @@ Examples:
 
     # 31. contacts
     p_cnt = subparsers.add_parser("contacts", help="Telegram Contacts & Address Book management")
-    p_cnt.add_argument("action", default="list", nargs="?", choices=["list", "search", "add", "blocked", "block", "unblock"], help="Contacts action")
-    p_cnt.add_argument("--sort-by", default="name", choices=["name", "last_seen", "time"], help="Sorting method: 'name' (A-Z) or 'last_seen' (online/recent activity)")
+    p_cnt.add_argument(
+        "action",
+        default="list",
+        nargs="?",
+        choices=["list", "search", "add", "blocked", "block", "unblock"],
+        help="Contacts action",
+    )
+    p_cnt.add_argument(
+        "--sort-by",
+        default="name",
+        choices=["name", "last_seen", "time"],
+        help="Sorting method: 'name' (A-Z) or 'last_seen' (online/recent activity)",
+    )
     p_cnt.add_argument("--query", help="Search query (name/@username)")
     p_cnt.add_argument("--phone", help="Phone number with country code")
     p_cnt.add_argument("--first-name", help="First Name")
@@ -1631,6 +1876,7 @@ Examples:
 
     if args.command == "tui" or args.tui:
         from .tui import run_tui
+
         client = get_client(session_name=args.session, api_id=args.api_id, api_hash=args.api_hash)
         run_tui(client)
         return
@@ -1663,53 +1909,202 @@ Examples:
             reverse=args.reverse,
             session_name=args.session,
             api_id=args.api_id,
-            api_hash=args.api_hash
+            api_hash=args.api_hash,
         )
     elif args.command == "takeout":
-        cmd_takeout(target=args.target, limit=args.limit, output=args.output, session_name=args.session, api_id=args.api_id, api_hash=args.api_hash)
+        cmd_takeout(
+            target=args.target,
+            limit=args.limit,
+            output=args.output,
+            session_name=args.session,
+            api_id=args.api_id,
+            api_hash=args.api_hash,
+        )
     elif args.command == "comments":
-        cmd_comments(target=args.target, post_id=args.post_id, limit=args.limit, session_name=args.session, api_id=args.api_id, api_hash=args.api_hash)
+        cmd_comments(
+            target=args.target,
+            post_id=args.post_id,
+            limit=args.limit,
+            session_name=args.session,
+            api_id=args.api_id,
+            api_hash=args.api_hash,
+        )
     elif args.command == "members":
-        cmd_members(target=args.target, limit=args.limit, output=args.output, session_name=args.session, api_id=args.api_id, api_hash=args.api_hash)
+        cmd_members(
+            target=args.target,
+            limit=args.limit,
+            output=args.output,
+            session_name=args.session,
+            api_id=args.api_id,
+            api_hash=args.api_hash,
+        )
     elif args.command == "extract":
-        cmd_extract(target=args.target, limit=args.limit, session_name=args.session, api_id=args.api_id, api_hash=args.api_hash)
+        cmd_extract(
+            target=args.target, limit=args.limit, session_name=args.session, api_id=args.api_id, api_hash=args.api_hash
+        )
     elif args.command == "export":
-        cmd_export(target=args.target, output=args.output, format_type=args.format, limit=args.limit, session_name=args.session, api_id=args.api_id, api_hash=args.api_hash)
+        cmd_export(
+            target=args.target,
+            output=args.output,
+            format_type=args.format,
+            limit=args.limit,
+            session_name=args.session,
+            api_id=args.api_id,
+            api_hash=args.api_hash,
+        )
     elif args.command == "download":
-        cmd_download_media(target=args.target, limit=args.limit, output_dir=args.dir, media_types=args.types, session_name=args.session, api_id=args.api_id, api_hash=args.api_hash)
+        cmd_download_media(
+            target=args.target,
+            limit=args.limit,
+            output_dir=args.dir,
+            media_types=args.types,
+            session_name=args.session,
+            api_id=args.api_id,
+            api_hash=args.api_hash,
+        )
     elif args.command == "avatar":
-        cmd_avatar_manager(action=args.action, target=args.target, file_path=args.file, output_dir=args.dir, session_name=args.session, api_id=args.api_id, api_hash=args.api_hash)
+        cmd_avatar_manager(
+            action=args.action,
+            target=args.target,
+            file_path=args.file,
+            output_dir=args.dir,
+            session_name=args.session,
+            api_id=args.api_id,
+            api_hash=args.api_hash,
+        )
     elif args.command == "send":
-        cmd_send_message(target=args.target, message=args.message, reply_to=args.reply_to, session_name=args.session, api_id=args.api_id, api_hash=args.api_hash)
+        cmd_send_message(
+            target=args.target,
+            message=args.message,
+            reply_to=args.reply_to,
+            session_name=args.session,
+            api_id=args.api_id,
+            api_hash=args.api_hash,
+        )
     elif args.command == "upload":
-        cmd_upload_file(target=args.target, file_path=args.file, caption=args.caption, workers=args.workers, session_name=args.session, api_id=args.api_id, api_hash=args.api_hash)
+        cmd_upload_file(
+            target=args.target,
+            file_path=args.file,
+            caption=args.caption,
+            workers=args.workers,
+            session_name=args.session,
+            api_id=args.api_id,
+            api_hash=args.api_hash,
+        )
     elif args.command == "edit-message":
-        cmd_edit_message(target=args.target, message_id=args.message_id, new_text=args.text, session_name=args.session, api_id=args.api_id, api_hash=args.api_hash)
+        cmd_edit_message(
+            target=args.target,
+            message_id=args.message_id,
+            new_text=args.text,
+            session_name=args.session,
+            api_id=args.api_id,
+            api_hash=args.api_hash,
+        )
     elif args.command == "delete-message":
-        cmd_delete_messages(target=args.target, message_ids=args.ids, session_name=args.session, api_id=args.api_id, api_hash=args.api_hash)
+        cmd_delete_messages(
+            target=args.target,
+            message_ids=args.ids,
+            session_name=args.session,
+            api_id=args.api_id,
+            api_hash=args.api_hash,
+        )
     elif args.command == "pin":
-        cmd_pin_message(target=args.target, message_id=args.message_id, notify=args.notify, session_name=args.session, api_id=args.api_id, api_hash=args.api_hash)
+        cmd_pin_message(
+            target=args.target,
+            message_id=args.message_id,
+            notify=args.notify,
+            session_name=args.session,
+            api_id=args.api_id,
+            api_hash=args.api_hash,
+        )
     elif args.command == "react":
-        cmd_send_reaction(target=args.target, message_id=args.message_id, reaction=args.emoji, session_name=args.session, api_id=args.api_id, api_hash=args.api_hash)
+        cmd_send_reaction(
+            target=args.target,
+            message_id=args.message_id,
+            reaction=args.emoji,
+            session_name=args.session,
+            api_id=args.api_id,
+            api_hash=args.api_hash,
+        )
     elif args.command == "admin":
         if args.action == "create-channel":
-            cmd_create_channel(title=args.title or "New Channel", about=args.about, session_name=args.session, api_id=args.api_id, api_hash=args.api_hash)
+            cmd_create_channel(
+                title=args.title or "New Channel",
+                about=args.about,
+                session_name=args.session,
+                api_id=args.api_id,
+                api_hash=args.api_hash,
+            )
         elif args.action == "create-group":
-            cmd_create_group(title=args.title or "New Group", session_name=args.session, api_id=args.api_id, api_hash=args.api_hash)
+            cmd_create_group(
+                title=args.title or "New Group", session_name=args.session, api_id=args.api_id, api_hash=args.api_hash
+            )
         elif args.action == "kick":
-            cmd_kick_user(target=args.target, user=args.user, session_name=args.session, api_id=args.api_id, api_hash=args.api_hash)
+            cmd_kick_user(
+                target=args.target,
+                user=args.user,
+                session_name=args.session,
+                api_id=args.api_id,
+                api_hash=args.api_hash,
+            )
         elif args.action == "restrict":
-            cmd_edit_permissions(target=args.target, user=args.user, send_messages=False, send_media=False, session_name=args.session, api_id=args.api_id, api_hash=args.api_hash)
+            cmd_edit_permissions(
+                target=args.target,
+                user=args.user,
+                send_messages=False,
+                send_media=False,
+                session_name=args.session,
+                api_id=args.api_id,
+                api_hash=args.api_hash,
+            )
         elif args.action == "log":
-            cmd_admin_log(target=args.target, limit=args.limit, session_name=args.session, api_id=args.api_id, api_hash=args.api_hash)
+            cmd_admin_log(
+                target=args.target,
+                limit=args.limit,
+                session_name=args.session,
+                api_id=args.api_id,
+                api_hash=args.api_hash,
+            )
     elif args.command == "invite-link":
-        cmd_invite_link_manager(action=args.action, target=args.target, title=args.title, link=args.link, session_name=args.session, api_id=args.api_id, api_hash=args.api_hash)
+        cmd_invite_link_manager(
+            action=args.action,
+            target=args.target,
+            title=args.title,
+            link=args.link,
+            session_name=args.session,
+            api_id=args.api_id,
+            api_hash=args.api_hash,
+        )
     elif args.command == "stories":
-        cmd_stories(action=args.action, target=args.target, file_path=args.file, caption=args.caption, story_id=args.story_id, session_name=args.session, api_id=args.api_id, api_hash=args.api_hash)
+        cmd_stories(
+            action=args.action,
+            target=args.target,
+            file_path=args.file,
+            caption=args.caption,
+            story_id=args.story_id,
+            session_name=args.session,
+            api_id=args.api_id,
+            api_hash=args.api_hash,
+        )
     elif args.command == "state":
-        cmd_state_sync(action=args.action, channel=args.channel, pts=args.pts, session_name=args.session, api_id=args.api_id, api_hash=args.api_hash)
+        cmd_state_sync(
+            action=args.action,
+            channel=args.channel,
+            pts=args.pts,
+            session_name=args.session,
+            api_id=args.api_id,
+            api_hash=args.api_hash,
+        )
     elif args.command == "voip":
-        cmd_voip(action=args.action, target=args.target, call_id=args.call_id, access_hash=args.access_hash, session_name=args.session, api_id=args.api_id, api_hash=args.api_hash)
+        cmd_voip(
+            action=args.action,
+            target=args.target,
+            call_id=args.call_id,
+            access_hash=args.access_hash,
+            session_name=args.session,
+            api_id=args.api_id,
+            api_hash=args.api_hash,
+        )
     elif args.command == "secret-chat":
         cmd_secret_chat(target=args.target, session_name=args.session, api_id=args.api_id, api_hash=args.api_hash)
     elif args.command == "string-session":
@@ -1717,7 +2112,9 @@ Examples:
     elif args.command == "sessions":
         cmd_list_sessions(session_name=args.session, api_id=args.api_id, api_hash=args.api_hash)
     elif args.command == "terminate-session":
-        cmd_terminate_session(auth_hash=args.hash, session_name=args.session, api_id=args.api_id, api_hash=args.api_hash)
+        cmd_terminate_session(
+            auth_hash=args.hash, session_name=args.session, api_id=args.api_id, api_hash=args.api_hash
+        )
     elif args.command == "reset-sessions":
         cmd_reset_sessions(session_name=args.session, api_id=args.api_id, api_hash=args.api_hash)
     elif args.command == "contacts":
@@ -1731,7 +2128,7 @@ Examples:
             user=args.user,
             session_name=args.session,
             api_id=args.api_id,
-            api_hash=args.api_hash
+            api_hash=args.api_hash,
         )
     elif args.command == "logout":
         cmd_logout(session_name=args.session, api_id=args.api_id, api_hash=args.api_hash)

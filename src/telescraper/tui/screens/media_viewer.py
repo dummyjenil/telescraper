@@ -3,11 +3,12 @@ Media & ASCII Image Viewer Modal for TeleScraper TUI.
 """
 
 from pathlib import Path
-from textual.binding import Binding
+
 from textual.app import ComposeResult
+from textual.binding import Binding
+from textual.containers import Horizontal, ScrollableContainer, Vertical
 from textual.screen import ModalScreen
-from textual.widgets import Label, Button, Static
-from textual.containers import Vertical, Horizontal, ScrollableContainer
+from textual.widgets import Button, Label, Static
 
 
 class MediaViewerModal(ModalScreen):
@@ -26,7 +27,7 @@ class MediaViewerModal(ModalScreen):
         with Vertical(classes="modal-dialog-large"):
             yield Label(f"🖼️ {self.viewer_title}", classes="text-bold text-cyan")
             yield Label(f"File: {self.file_path}", classes="subtext")
-            
+
             with ScrollableContainer(classes="media-card height-1fr"):
                 yield Static(self._generate_ascii_preview(), id="media-ascii-preview")
 
@@ -39,17 +40,18 @@ class MediaViewerModal(ModalScreen):
         p = Path(self.file_path)
         if not p.exists():
             return f"[red]File not found on disk: {self.file_path}[/red]"
-        
+
         try:
             from PIL import Image
+
             img = Image.open(p)
-            img = img.convert('L')
+            img = img.convert("L")
             w, h = img.size
             aspect_ratio = h / w
             new_w = 60
             new_h = int(aspect_ratio * new_w * 0.55)
             img = img.resize((new_w, new_h))
-            
+
             chars = ["@", "#", "S", "%", "?", "*", "+", ";", ":", ",", "."]
             pixels = img.getdata()
             ascii_str = ""

@@ -1,10 +1,10 @@
 """Session storage for saving DC credentials and AuthKeys to disk."""
 
-import sqlite3
 import os
+import sqlite3
 from typing import Optional
-from ..crypto import AuthKey
 
+from ..crypto import AuthKey
 
 DEFAULT_DC_IP = "149.154.167.50"
 DEFAULT_DC_PORT = 443
@@ -18,8 +18,8 @@ class SyncSession:
     """
 
     def __init__(self, session_path: str):
-        if not session_path.endswith('.session'):
-            session_path += '.session'
+        if not session_path.endswith(".session"):
+            session_path += ".session"
         self.filename = session_path
         self.dc_id = DEFAULT_DC_ID
         self.server_address = DEFAULT_DC_IP
@@ -36,7 +36,9 @@ class SyncSession:
         try:
             conn = sqlite3.connect(self.filename)
             c = conn.cursor()
-            c.execute("CREATE TABLE IF NOT EXISTS sessions (dc_id INTEGER, server_address TEXT, port INTEGER, auth_key BLOB, user_id INTEGER)")
+            c.execute(
+                "CREATE TABLE IF NOT EXISTS sessions (dc_id INTEGER, server_address TEXT, port INTEGER, auth_key BLOB, user_id INTEGER)"
+            )
             row = c.execute("SELECT dc_id, server_address, port, auth_key, user_id FROM sessions LIMIT 1").fetchone()
             if row:
                 self.dc_id = row[0] or DEFAULT_DC_ID
@@ -53,12 +55,14 @@ class SyncSession:
         """Save session state to SQLite database."""
         conn = sqlite3.connect(self.filename)
         c = conn.cursor()
-        c.execute("CREATE TABLE IF NOT EXISTS sessions (dc_id INTEGER, server_address TEXT, port INTEGER, auth_key BLOB, user_id INTEGER)")
+        c.execute(
+            "CREATE TABLE IF NOT EXISTS sessions (dc_id INTEGER, server_address TEXT, port INTEGER, auth_key BLOB, user_id INTEGER)"
+        )
         c.execute("DELETE FROM sessions")
         auth_bytes = self.auth_key.key if self.auth_key else None
         c.execute(
             "INSERT INTO sessions (dc_id, server_address, port, auth_key, user_id) VALUES (?, ?, ?, ?, ?)",
-            (self.dc_id, self.server_address, self.port, auth_bytes, self.user_id)
+            (self.dc_id, self.server_address, self.port, auth_bytes, self.user_id),
         )
         conn.commit()
         conn.close()

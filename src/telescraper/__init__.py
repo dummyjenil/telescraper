@@ -3,47 +3,43 @@ TeleScraper - 100% Pure Synchronous Telegram MTProto Client & Scraping Suite.
 Zero asyncio, pure blocking sockets.
 """
 
+from .admin import AdminManager
+from .auth_qr import QRLogin
+from .checkpoint import ScrapeCheckpoint
+from .cli import main as cli_main
 from .client import TeleScraper
-from .models import ChatData, MessageData, MediaInfo, MemberData
-from .downloader import download_media_sync, download_media_sync as download_message_media
-from .parallel_downloader import download_file_parallel_sync
-from .uploader import upload_file_sync
+from .downloader import download_media_sync
+from .downloader import download_media_sync as download_message_media
+from .exceptions import AuthenticationError, DownloadError, TargetNotFoundError, TeleScraperError
 from .exporter import (
-    export_to_json,
     export_to_csv,
     export_to_excel,
+    export_to_json,
     export_to_sqlite,
     to_dataframe,
 )
 from .extractor import extract_data
-from .checkpoint import ScrapeCheckpoint
-from .admin import AdminManager
-from .sessions.string_session import StringSession
-from .sessions.session import SyncSession
-from .auth_qr import QRLogin
-from .cli import main as cli_main
-from .tui import TelegramApp, run_tui
-from .takeout import TakeoutSession
-from .secret_chat import SecretChat
-from .media_utils import resize_image_sync, inspect_media_metadata
+from .media_utils import inspect_media_metadata, resize_image_sync
+from .models import ChatData, MediaInfo, MemberData, MessageData
 from .network.connection import (
-    SyncConnection,
-    ConnectionTcpFull,
-    ConnectionTcpAbridged,
-    ConnectionTcpIntermediate,
-    ConnectionTcpRandomizedIntermediate,
-    ConnectionTcpObfuscated,
-    ConnectionTcpMTProxyIntermediate,
-    ConnectionTcpMTProxyAbridged,
-    ConnectionTcpMTProxyRandomizedIntermediate,
     ConnectionHttp,
+    ConnectionTcpAbridged,
+    ConnectionTcpFull,
+    ConnectionTcpIntermediate,
+    ConnectionTcpMTProxyAbridged,
+    ConnectionTcpMTProxyIntermediate,
+    ConnectionTcpMTProxyRandomizedIntermediate,
+    ConnectionTcpObfuscated,
+    ConnectionTcpRandomizedIntermediate,
+    SyncConnection,
 )
-from .exceptions import (
-    TeleScraperError,
-    AuthenticationError,
-    TargetNotFoundError,
-    DownloadError
-)
+from .parallel_downloader import download_file_parallel_sync
+from .secret_chat import SecretChat
+from .sessions.session import SyncSession
+from .sessions.string_session import StringSession
+from .takeout import TakeoutSession
+from .tui import TelegramApp, run_tui
+from .uploader import upload_file_sync
 
 __version__ = "0.3.0"
 

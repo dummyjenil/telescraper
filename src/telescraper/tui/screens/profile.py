@@ -2,12 +2,11 @@
 Profile & WhoAmI Modal Screen for TeleScraper TUI.
 """
 
-from typing import Optional, Any
-from textual.binding import Binding
 from textual.app import ComposeResult
+from textual.binding import Binding
+from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
-from textual.widgets import Label, Button, Static, Input
-from textual.containers import Vertical, Horizontal, Center
+from textual.widgets import Button, Label
 
 from ...client import TeleScraper
 
@@ -32,7 +31,7 @@ class ProfileModal(ModalScreen):
 
         with Vertical(classes="modal-dialog"):
             yield Label("👤 My Telegram Profile", classes="text-bold text-cyan")
-            
+
             initials = "TG"
             name_str = "Unknown User"
             username_str = "@none"
@@ -58,7 +57,7 @@ class ProfileModal(ModalScreen):
                     yield Label(f"Status: {status_str}", classes="text-green")
 
             yield Label("📁 Session Information:", classes="text-bold")
-            session_file = getattr(self.client.session, 'filename', 'active session')
+            session_file = getattr(self.client.session, "filename", "active session")
             yield Label(f"Session: {session_file}", classes="subtext")
             yield Label(f"Data Center: DC {getattr(self.client.session, 'dc_id', 2)}", classes="subtext")
 
@@ -79,6 +78,7 @@ class ProfileModal(ModalScreen):
         elif event.button.id == "btn-export-str":
             try:
                 from ...sessions.string_session import StringSession
+
                 ss = StringSession.save(self.client.session)
                 self.app.copy_to_clipboard(ss)
                 self.notify("StringSession copied to clipboard!", title="Exported")

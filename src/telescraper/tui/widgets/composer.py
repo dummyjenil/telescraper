@@ -2,11 +2,12 @@
 Message Composer Bar Widget for TeleScraper Textual TUI.
 """
 
-from typing import Optional, Callable
+from typing import Callable, Optional
+
 from textual.app import ComposeResult
-from textual.widget import Widget
-from textual.widgets import Input, Button, Label, Static
 from textual.containers import Horizontal, Vertical
+from textual.widget import Widget
+from textual.widgets import Button, Input, Label
 
 
 class ComposerWidget(Widget):
@@ -48,14 +49,21 @@ class ComposerWidget(Widget):
             self.on_create_poll()
         elif event.button.id == "btn-voice":
             from ..screens.dialogs import NotSupportedModal
-            self.app.push_screen(NotSupportedModal("Live Voice Recording", "Microphone audio capture is not supported in the terminal environment."))
+
+            self.app.push_screen(
+                NotSupportedModal(
+                    "Live Voice Recording", "Microphone audio capture is not supported in the terminal environment."
+                )
+            )
         elif event.button.id == "btn-emoji":
             from ..screens.dialogs import ReactionPickerModal
+
             def insert_emoji(emo: Optional[str]):
                 if emo:
                     inp = self.query_one("#message-input", Input)
                     inp.value += f" {emo} "
                     inp.focus()
+
             self.app.push_screen(ReactionPickerModal(), insert_emoji)
 
     def on_input_submitted(self, event: Input.Submitted) -> None:

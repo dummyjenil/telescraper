@@ -2,8 +2,8 @@
 
 from telescraper import TeleScraper
 
-API_ID = 12345678              # Replace with your Telegram API ID
-API_HASH = "your_api_hash"     # Replace with your Telegram API Hash
+API_ID = 12345678  # Replace with your Telegram API ID
+API_HASH = "your_api_hash"  # Replace with your Telegram API Hash
 SESSION = "scraper_session"
 
 # Target channel or group

@@ -1,30 +1,31 @@
 import os
-import tempfile
 import struct
+import tempfile
 from datetime import datetime
+
 from telescraper import (
-    TeleScraper,
-    MessageData,
-    MediaInfo,
     ChatData,
+    ConnectionHttp,
+    ConnectionTcpAbridged,
+    ConnectionTcpFull,
+    ConnectionTcpIntermediate,
+    ConnectionTcpMTProxyIntermediate,
+    ConnectionTcpObfuscated,
+    ConnectionTcpRandomizedIntermediate,
+    MediaInfo,
     MemberData,
+    MessageData,
+    ScrapeCheckpoint,
     StringSession,
     SyncSession,
-    ScrapeCheckpoint,
-    extract_data,
-    export_to_json,
+    TeleScraper,
     export_to_csv,
     export_to_excel,
+    export_to_json,
     export_to_sqlite,
-    resize_image_sync,
+    extract_data,
     inspect_media_metadata,
-    ConnectionTcpFull,
-    ConnectionTcpAbridged,
-    ConnectionTcpIntermediate,
-    ConnectionTcpRandomizedIntermediate,
-    ConnectionTcpObfuscated,
-    ConnectionTcpMTProxyIntermediate,
-    ConnectionHttp,
+    resize_image_sync,
 )
 
 
@@ -108,7 +109,7 @@ def test_all_exporters():
             text="Bitcoin update today!",
             sender_id=123,
             sender_name="Alice",
-            has_media=False
+            has_media=False,
         )
 
         json_file = os.path.join(tmpdir, "test.json")
@@ -125,13 +126,19 @@ def test_all_exporters():
         assert os.path.exists(csv_file)
         assert os.path.exists(sqlite_file)
         # Excel creates .xlsx or fallback .csv
-        assert os.path.exists(excel_file) or os.path.exists(excel_file.replace('.xlsx', '.csv'))
+        assert os.path.exists(excel_file) or os.path.exists(excel_file.replace(".xlsx", ".csv"))
         print("[✔] Advanced Exporters (JSON, CSV, SQLite, Excel) test passed!")
 
 
 def test_media_utils():
-    # Test image resizing fallback / pillow
-    dummy_bytes = b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00\xff\xdb\x00C\x00\xff\xd9'
+    import io
+
+    from PIL import Image
+
+    img = Image.new("RGB", (10, 10), color="red")
+    b = io.BytesIO()
+    img.save(b, format="JPEG")
+    dummy_bytes = b.getvalue()
     buf, dims = resize_image_sync(dummy_bytes)
     assert buf is not None
 
@@ -143,12 +150,7 @@ def test_media_utils():
 
 def test_client_transports_configuration():
     # Verify client can be initialized with different transport classes
-    client_obfs = TeleScraper(
-        session="obfs_session",
-        api_id=12345,
-        api_hash="hash",
-        connection=ConnectionTcpObfuscated
-    )
+    client_obfs = TeleScraper(session="obfs_session", api_id=12345, api_hash="hash", connection=ConnectionTcpObfuscated)
     assert client_obfs.connection_class == ConnectionTcpObfuscated
 
     client_mtp = TeleScraper(
@@ -156,7 +158,7 @@ def test_client_transports_configuration():
         api_id=12345,
         api_hash="hash",
         connection=ConnectionTcpMTProxyIntermediate,
-        connection_kwargs={"secret": "00112233445566778899aabbccddeeff"}
+        connection_kwargs={"secret": "00112233445566778899aabbccddeeff"},
     )
     assert client_mtp.connection_class == ConnectionTcpMTProxyIntermediate
     print("[✔] TeleScraper Transports configuration test passed!")

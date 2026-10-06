@@ -5,18 +5,19 @@ Sends and receives encrypted Telegram RPC requests over blocking TCP sockets.
 
 import io
 import time
-from typing import Any, List, Optional
+from typing import Any, Optional
 
-from .connection import SyncTcpIntermediateConnection
-from .mtprotostate import MTProtoState
 from ..crypto import AuthKey
 from ..errors import (
-    rpc_message_to_error, InvalidBufferError, SecurityError, RPCError,
-    BadServerSaltError, BadMessageError
+    BadMessageError,
+    BadServerSaltError,
+    rpc_message_to_error,
 )
 from ..extensions import BinaryReader
-from ..tl.core import TLMessage, MessageContainer, GzipPacked, RpcResult
-from ..tl.types import BadServerSalt, BadMsgNotification, MsgsAck, Pong
+from ..tl.core import GzipPacked, MessageContainer, RpcResult
+from ..tl.types import BadMsgNotification, BadServerSalt
+from .connection import SyncTcpIntermediateConnection
+from .mtprotostate import MTProtoState
 
 
 class SyncMTProtoSender:
@@ -45,11 +46,7 @@ class SyncMTProtoSender:
 
                 # 1. Serialize request into buffer
                 buf = io.BytesIO()
-                msg_id = self.state.write_data_as_message(
-                    buf,
-                    bytes(request),
-                    content_related=True
-                )
+                msg_id = self.state.write_data_as_message(buf, bytes(request), content_related=True)
                 payload = buf.getvalue()
 
                 # 2. Encrypt using MTProto 2.0

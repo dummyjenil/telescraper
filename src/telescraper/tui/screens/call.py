@@ -3,13 +3,13 @@ Telegram Call UI (Voice & Video Call Signalling) Screen for TeleScraper TUI.
 """
 
 import time
-from typing import Optional
-from textual.binding import Binding
+
 from textual.app import ComposeResult
-from textual.screen import ModalScreen
-from textual.widgets import Label, Button, Static
-from textual.containers import Vertical, Horizontal, Center
+from textual.binding import Binding
+from textual.containers import Center, Horizontal, Vertical
 from textual.reactive import reactive
+from textual.screen import ModalScreen
+from textual.widgets import Button, Label, Static
 
 from ...client import TeleScraper
 
@@ -42,13 +42,17 @@ class CallScreen(ModalScreen):
             with Vertical(id="call-screen"):
                 call_type_str = "📹 Video Call" if self.is_video_init else "📞 Voice Call"
                 yield Label(f"Telegram {call_type_str}", classes="text-bold text-cyan text-center")
-                
+
                 with Vertical(classes="call-avatar"):
                     initial = self.target[:2].upper() if self.target else "TG"
-                    yield Label(f"╭──────────╮\n│   {initial:^4}   │\n╰──────────╯", classes="text-cyan text-bold text-center")
+                    yield Label(
+                        f"╭──────────╮\n│   {initial:^4}   │\n╰──────────╯", classes="text-cyan text-bold text-center"
+                    )
                     yield Label(f"{self.target}", classes="text-bold text-center")
-                
-                yield Label("Connecting & Exchanging Diffie-Hellman Keys...", id="call-status-label", classes="call-status")
+
+                yield Label(
+                    "Connecting & Exchanging Diffie-Hellman Keys...", id="call-status-label", classes="call-status"
+                )
                 yield Label("⏱️ 00:00", id="call-timer-label", classes="text-center text-bold text-cyan")
                 yield Static(id="audio-wave-anim", classes="text-center text-green")
                 yield Static(id="dh-fingerprint-label", classes="subtext text-center")
@@ -67,9 +71,9 @@ class CallScreen(ModalScreen):
         try:
             # Request VoIP call via MTProto
             res = self.client.voip.request_call(self.target, video=self.is_video_init)
-            self._call_id = getattr(res, 'id', 12345)
-            self._access_hash = getattr(res, 'access_hash', 67890)
-            
+            self._call_id = getattr(res, "id", 12345)
+            self._access_hash = getattr(res, "access_hash", 67890)
+
             self.call_state = "Ringing..."
             self.query_one("#call-status-label", Label).update("📞 Ringing...")
             self.set_timer(2.5, self.simulate_call_connected)
@@ -90,7 +94,7 @@ class CallScreen(ModalScreen):
             mins = elapsed // 60
             secs = elapsed % 60
             self.query_one("#call-timer-label", Label).update(f"⏱️ {mins:02d}:{secs:02d}")
-            
+
             # Simple animated audio wave
             waves = [" ▂▃▅▆▇▆▅▃▂ ", " ▃▅▇██▇▅▃ ", " ▂▄▆█▇▅▃▂ ", " ▃▅▆▇▆▅▃▂ "]
             anim = waves[elapsed % len(waves)]

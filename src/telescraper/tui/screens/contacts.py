@@ -2,12 +2,13 @@
 Contacts Screen & Manager for TeleScraper TUI.
 """
 
-from typing import Optional, Callable, List
-from textual.binding import Binding
+from typing import Callable, List, Optional
+
 from textual.app import ComposeResult
+from textual.binding import Binding
+from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
-from textual.widgets import Label, Button, Input, ListView, ListItem, Static
-from textual.containers import Vertical, Horizontal
+from textual.widgets import Button, Input, Label, ListItem, ListView
 
 from ...client import TeleScraper
 from ...models import MemberData
@@ -45,11 +46,13 @@ class AddContactModal(ModalScreen[Optional[dict]]):
                 self.notify("Phone number and First Name are required!", title="Error", severity="error")
                 return
 
-            self.dismiss({
-                "phone": phone,
-                "first_name": fname,
-                "last_name": lname,
-            })
+            self.dismiss(
+                {
+                    "phone": phone,
+                    "first_name": fname,
+                    "last_name": lname,
+                }
+            )
 
 
 class ContactsModal(ModalScreen[Optional[str]]):
@@ -119,10 +122,9 @@ class ContactsModal(ModalScreen[Optional[str]]):
             self._render_contacts(self._contacts_cache)
         else:
             filtered = [
-                m for m in self._contacts_cache
-                if q in (m.full_name or "").lower()
-                or q in (m.username or "").lower()
-                or q in (m.phone or "").lower()
+                m
+                for m in self._contacts_cache
+                if q in (m.full_name or "").lower() or q in (m.username or "").lower() or q in (m.phone or "").lower()
             ]
             self._render_contacts(filtered)
 
@@ -136,7 +138,12 @@ class ContactsModal(ModalScreen[Optional[str]]):
         for m in contacts:
             name = m.full_name or "User"
             uname = f"@{m.username}" if m.username else (m.phone or "")
-            if m.status and "online" in m.status.lower() and "offline" not in m.status.lower() and "seen" not in m.status.lower():
+            if (
+                m.status
+                and "online" in m.status.lower()
+                and "offline" not in m.status.lower()
+                and "seen" not in m.status.lower()
+            ):
                 status_str = "🟢 Online"
             elif m.status:
                 status_str = f"⚪ {m.status}"
@@ -145,10 +152,14 @@ class ContactsModal(ModalScreen[Optional[str]]):
 
             item = ListItem(
                 Horizontal(
-                    Label(f"👤 {name} ({uname})".strip() if uname else f"👤 {name}", classes="text-bold width-1fr", markup=False),
-                    Label(status_str, classes="subtext", markup=False)
+                    Label(
+                        f"👤 {name} ({uname})".strip() if uname else f"👤 {name}",
+                        classes="text-bold width-1fr",
+                        markup=False,
+                    ),
+                    Label(status_str, classes="subtext", markup=False),
                 ),
-                name=str(m.user_id)
+                name=str(m.user_id),
             )
             lv.append(item)
 
@@ -180,6 +191,7 @@ class ContactsModal(ModalScreen[Optional[str]]):
                     self.on_select_contact(contact_id)
                 self.dismiss(contact_id)
         elif event.button.id == "btn-add-contact":
+
             def on_added(res: Optional[dict]):
                 if res:
                     try:
@@ -188,9 +200,12 @@ class ContactsModal(ModalScreen[Optional[str]]):
                             self.notify(f"Contact {res['first_name']} added successfully!", title="Success")
                             self.load_contacts()
                         else:
-                            self.notify("Could not import contact (user may not be registered on Telegram).", title="Notice", severity="warning")
+                            self.notify(
+                                "Could not import contact (user may not be registered on Telegram).",
+                                title="Notice",
+                                severity="warning",
+                            )
                     except Exception as e:
                         self.notify(f"Failed to add contact: {e}", title="Error", severity="error")
+
             self.app.push_screen(AddContactModal(), on_added)
-
-

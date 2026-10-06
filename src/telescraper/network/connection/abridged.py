@@ -1,6 +1,7 @@
 """TCP Abridged Transport (0xef header + compact length)."""
 
 import struct
+
 from .base import SyncConnection
 
 
@@ -14,7 +15,7 @@ class ConnectionTcpAbridged(SyncConnection):
 
     def _send_handshake(self) -> None:
         if self._socket:
-            self._socket.sendall(b'\xef')
+            self._socket.sendall(b"\xef")
 
     def send(self, data: bytes) -> None:
         if not self._connected or not self._socket:
@@ -22,9 +23,9 @@ class ConnectionTcpAbridged(SyncConnection):
 
         length = len(data) // 4
         if length < 127:
-            header = struct.pack('B', length)
+            header = struct.pack("B", length)
         else:
-            header = b'\x7f' + struct.pack('<I', length)[:3]
+            header = b"\x7f" + struct.pack("<I", length)[:3]
 
         self._socket.sendall(header + data)
 
@@ -36,6 +37,6 @@ class ConnectionTcpAbridged(SyncConnection):
         if first_byte < 127:
             length = first_byte * 4
         else:
-            length = struct.unpack('<I', self._recv_exact(3) + b'\x00')[0] * 4
+            length = struct.unpack("<I", self._recv_exact(3) + b"\x00")[0] * 4
 
         return self._recv_exact(length)

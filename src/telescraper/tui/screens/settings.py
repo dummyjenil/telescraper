@@ -2,12 +2,11 @@
 Settings & Session Management Screen for TeleScraper TUI.
 """
 
-from typing import Optional
-from textual.binding import Binding
 from textual.app import ComposeResult
+from textual.binding import Binding
+from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
-from textual.widgets import Label, Button, ListView, ListItem, TabbedContent, TabPane, Select, Static
-from textual.containers import Vertical, Horizontal
+from textual.widgets import Button, Label, ListItem, ListView, Select, Static, TabbedContent, TabPane
 
 from ...client import TeleScraper
 
@@ -26,7 +25,7 @@ class SettingsModal(ModalScreen):
     def compose(self) -> ComposeResult:
         with Vertical(classes="modal-dialog-large"):
             yield Label("⚙️ TeleScraper Settings & Sessions", classes="text-bold text-cyan")
-            
+
             with TabbedContent():
                 with TabPane("💻 Active Devices", id="tab-devices"):
                     yield Label("Authorized Telegram Devices & Logins:")
@@ -46,7 +45,7 @@ class SettingsModal(ModalScreen):
                             ("HTTP POST Fallback (Port 80/443)", "http"),
                         ],
                         value="intermediate",
-                        id="select-transport"
+                        id="select-transport",
                     )
                     yield Static("Choose transport to evade ISP censorship or firewalls.", classes="subtext")
 
@@ -69,22 +68,22 @@ class SettingsModal(ModalScreen):
         try:
             auths = self.client.get_authorizations()
             for a in auths:
-                is_cur = " (Current Device)" if getattr(a, 'current', False) else ""
+                is_cur = " (Current Device)" if getattr(a, "current", False) else ""
                 dev_str = f"💻 {a.device_model} - {a.platform} {is_cur}"
                 ip_str = f"IP: {a.ip} ({a.country}) | App: {a.app_name} {a.app_version}"
-                lv.append(ListItem(
-                    Vertical(
-                        Label(dev_str, classes="text-bold"),
-                        Label(ip_str, classes="subtext")
-                    ),
-                    name=str(a.hash)
-                ))
+                lv.append(
+                    ListItem(
+                        Vertical(Label(dev_str, classes="text-bold"), Label(ip_str, classes="subtext")),
+                        name=str(a.hash),
+                    )
+                )
         except Exception as e:
             lv.append(ListItem(Label(f"Error loading devices: {e}")))
 
     def load_string_session(self) -> None:
         try:
             from ...sessions.string_session import StringSession
+
             ss = StringSession.save(self.client.session)
             preview = f"{ss[:40]}...{ss[-20:]}"
             self.query_one("#string-session-box", Static).update(preview)
@@ -100,13 +99,13 @@ class SettingsModal(ModalScreen):
             self.load_devices()
         elif event.button.id == "btn-terminate-others":
             try:
-                res = self.client.reset_authorizations()
+                self.client.reset_authorizations()
                 self.notify("All other sessions terminated successfully!", title="Sessions")
                 self.load_devices()
             except Exception as e:
                 self.notify(f"Failed to reset: {e}", severity="error")
         elif event.button.id == "btn-copy-string":
-            if getattr(self, '_full_string_session', None):
+            if getattr(self, "_full_string_session", None):
                 self.app.copy_to_clipboard(self._full_string_session)
                 self.notify("StringSession copied to clipboard!", title="Copied")
         elif event.button.id == "btn-logout":

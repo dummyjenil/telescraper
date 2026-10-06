@@ -7,13 +7,14 @@ Interactive Modals and Dialogs for TeleScraper TUI:
 - FilePickerModal
 """
 
-from typing import Optional, Callable
 from pathlib import Path
-from textual.binding import Binding
+from typing import Optional
+
 from textual.app import ComposeResult
+from textual.binding import Binding
+from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
-from textual.widgets import Label, Button, Input, Static
-from textual.containers import Vertical, Horizontal, Grid
+from textual.widgets import Button, Input, Label
 
 
 class NotSupportedModal(ModalScreen):

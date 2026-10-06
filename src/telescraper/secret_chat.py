@@ -4,14 +4,12 @@ Pure Synchronous Implementation using Diffie-Hellman Key Exchange and AES-256-IG
 """
 
 import os
-import struct
-from hashlib import sha1, sha256
-from typing import Optional, Any, Union
+from typing import Any, Optional, Union
 
-from .tl import functions, types
-from .crypto import AES, Factorization, rsa
-from .helpers import generate_random_long
+from .crypto import rsa
 from .exceptions import TeleScraperError
+from .helpers import generate_random_long
+from .tl import functions, types
 
 
 class SecretChat:
@@ -41,26 +39,19 @@ class SecretChat:
 
         # Generate DH parameters
         dh_config = client._invoke(functions.messages.GetDhConfigRequest(version=0, random_length=256))
-        dh_prime = int.from_bytes(dh_config.p, 'big', signed=False)
+        dh_prime = int.from_bytes(dh_config.p, "big", signed=False)
         g = dh_config.g
 
-        a = int.from_bytes(os.urandom(256), 'big', signed=False)
+        a = int.from_bytes(os.urandom(256), "big", signed=False)
         g_a = pow(g, a, dh_prime)
         g_a_bytes = rsa.get_byte_array(g_a)
 
-        res = client._invoke(functions.messages.RequestEncryptionRequest(
-            user_id=input_user,
-            random_id=random_id,
-            g_a=g_a_bytes
-        ))
+        res = client._invoke(
+            functions.messages.RequestEncryptionRequest(user_id=input_user, random_id=random_id, g_a=g_a_bytes)
+        )
 
         if isinstance(res, (types.EncryptedChatWaiting, types.EncryptedChatRequested)):
-            chat = cls(
-                client=client,
-                chat_id=res.id,
-                access_hash=res.access_hash,
-                user_id=peer.user_id
-            )
+            chat = cls(client=client, chat_id=res.id, access_hash=res.access_hash, user_id=peer.user_id)
             print(f"[✔] Secret Chat requested (Chat ID: {res.id}). Waiting for recipient to accept.")
             return chat
 

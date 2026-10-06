@@ -5,28 +5,23 @@ Downloads large files 4x faster using ThreadPoolExecutor and pure synchronous ch
 
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Optional, Callable, Any, List
+from typing import Any, Callable, Optional
+
+from .exceptions import DownloadError
 from .tl.functions.upload import GetFileRequest
 from .tl.types import upload
 from .utils import get_input_location
-from .exceptions import DownloadError
 
 PARALLEL_CHUNK_SIZE = 512 * 1024  # 512 KB per part
 
 
-def download_chunk_worker(
-    client: Any,
-    location: Any,
-    offset: int,
-    limit: int,
-    dc_id: Optional[int] = None
-) -> bytes:
+def download_chunk_worker(client: Any, location: Any, offset: int, limit: int, dc_id: Optional[int] = None) -> bytes:
     """Download a single chunk at offset."""
     req = GetFileRequest(location=location, offset=offset, limit=limit)
     res = client._invoke(req, dc_id=dc_id)
     if isinstance(res, upload.File):
         return res.bytes
-    return b''
+    return b""
 
 
 def download_file_parallel_sync(
@@ -35,7 +30,7 @@ def download_file_parallel_sync(
     output_dir: str = "./downloads",
     filename: Optional[str] = None,
     num_threads: int = 4,
-    progress_callback: Optional[Callable[[int, int], None]] = None
+    progress_callback: Optional[Callable[[int, int], None]] = None,
 ) -> str:
     """
     Download media using multi-threaded parallel chunks.
@@ -48,8 +43,8 @@ def download_file_parallel_sync(
     :param progress_callback: fn(downloaded_bytes, total_bytes)
     :return: Absolute path of downloaded file
     """
-    raw_msg = getattr(message, 'raw_message', message)
-    if not raw_msg or not getattr(raw_msg, 'media', None):
+    raw_msg = getattr(message, "raw_message", message)
+    if not raw_msg or not getattr(raw_msg, "media", None):
         raise DownloadError("Message contains no downloadable media")
 
     media = raw_msg.media
@@ -60,16 +55,16 @@ def download_file_parallel_sync(
     # Determine total size and filename
     total_size = 0
     inferred_name = None
-    if hasattr(media, 'document') and media.document:
+    if hasattr(media, "document") and media.document:
         doc = media.document
-        total_size = getattr(doc, 'size', 0)
-        for attr in getattr(doc, 'attributes', []):
-            if hasattr(attr, 'file_name') and attr.file_name:
+        total_size = getattr(doc, "size", 0)
+        for attr in getattr(doc, "attributes", []):
+            if hasattr(attr, "file_name") and attr.file_name:
                 inferred_name = attr.file_name
                 break
-    elif hasattr(media, 'photo') and media.photo:
-        if hasattr(media.photo, 'sizes') and media.photo.sizes:
-            total_size = getattr(media.photo.sizes[-1], 'size', 0)
+    elif hasattr(media, "photo") and media.photo:
+        if hasattr(media.photo, "sizes") and media.photo.sizes:
+            total_size = getattr(media.photo.sizes[-1], "size", 0)
             inferred_name = f"photo_{raw_msg.id}.jpg"
 
     name = filename or inferred_name or f"file_{raw_msg.id}.bin"
@@ -79,10 +74,13 @@ def download_file_parallel_sync(
     if total_size <= 0:
         # Fall back to sequential downloader for unknown sizes
         from .downloader import download_media_sync
-        return download_media_sync(client, message, output_dir=output_dir, filename=name, progress_callback=progress_callback)
+
+        return download_media_sync(
+            client, message, output_dir=output_dir, filename=name, progress_callback=progress_callback
+        )
 
     # Pre-allocate output file
-    with open(out_path, 'wb') as f:
+    with open(out_path, "wb") as f:
         f.truncate(total_size)
 
     # Calculate offsets
@@ -94,7 +92,7 @@ def download_file_parallel_sync(
         limit = min(PARALLEL_CHUNK_SIZE, total_size - offset)
         chunk = download_chunk_worker(client, input_location, offset, limit, dc_id=dc_id)
         if chunk:
-            with open(out_path, 'r+b') as f:
+            with open(out_path, "r+b") as f:
                 f.seek(offset)
                 f.write(chunk)
             downloaded_bytes += len(chunk)

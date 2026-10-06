@@ -5,7 +5,8 @@ Tracks pts, qts, date, seq and recovers missed updates via getDifference.
 """
 
 from dataclasses import dataclass
-from typing import Optional, List, Any
+from typing import Any, Optional
+
 from .tl import functions, types
 from .utils import get_input_channel
 
@@ -34,11 +35,7 @@ class SyncUpdateEngine:
         """
         res = self.client._invoke(functions.updates.GetStateRequest())
         self.state = UpdateSyncState(
-            pts=res.pts,
-            qts=res.qts,
-            date=res.date,
-            seq=res.seq,
-            unread_count=getattr(res, 'unread_count', 0)
+            pts=res.pts, qts=res.qts, date=res.date, seq=res.seq, unread_count=getattr(res, "unread_count", 0)
         )
         return self.state
 
@@ -47,7 +44,7 @@ class SyncUpdateEngine:
         pts: Optional[int] = None,
         date: Optional[int] = None,
         qts: Optional[int] = None,
-        pts_total_limit: Optional[int] = None
+        pts_total_limit: Optional[int] = None,
     ) -> Any:
         """
         Get missed messages and updates since the given pts/date/qts state.
@@ -57,42 +54,25 @@ class SyncUpdateEngine:
         current_qts = qts if qts is not None else (self.state.qts if self.state else 0)
 
         req = functions.updates.GetDifferenceRequest(
-            pts=current_pts,
-            date=current_date,
-            qts=current_qts,
-            pts_total_limit=pts_total_limit
+            pts=current_pts, date=current_date, qts=current_qts, pts_total_limit=pts_total_limit
         )
         result = self.client._invoke(req)
 
         # Update cached state if difference returned state updates
-        if hasattr(result, 'state'):
+        if hasattr(result, "state"):
             st = result.state
             self.state = UpdateSyncState(
-                pts=st.pts,
-                qts=st.qts,
-                date=st.date,
-                seq=st.seq,
-                unread_count=getattr(st, 'unread_count', 0)
+                pts=st.pts, qts=st.qts, date=st.date, seq=st.seq, unread_count=getattr(st, "unread_count", 0)
             )
-        elif hasattr(result, 'intermediate_state'):
+        elif hasattr(result, "intermediate_state"):
             st = result.intermediate_state
             self.state = UpdateSyncState(
-                pts=st.pts,
-                qts=st.qts,
-                date=st.date,
-                seq=st.seq,
-                unread_count=getattr(st, 'unread_count', 0)
+                pts=st.pts, qts=st.qts, date=st.date, seq=st.seq, unread_count=getattr(st, "unread_count", 0)
             )
 
         return result
 
-    def get_channel_difference(
-        self,
-        channel: Any,
-        pts: int,
-        limit: int = 100,
-        filter: Optional[Any] = None
-    ) -> Any:
+    def get_channel_difference(self, channel: Any, pts: int, limit: int = 100, filter: Optional[Any] = None) -> Any:
         """
         Get missed messages and updates for a specific channel since the given pts.
         """
@@ -102,6 +82,6 @@ class SyncUpdateEngine:
             filter=filter or types.ChannelMessagesFilterEmpty(),
             pts=pts,
             limit=limit,
-            force=False
+            force=False,
         )
         return self.client._invoke(req)

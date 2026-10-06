@@ -8,7 +8,7 @@ Demonstration of all 6 Advanced Pure Synchronous Scraping Features:
 6. Regex Data Extractor (Emails, Phones, URLs, Crypto Wallets: BTC, ETH, TON, SOL, USDT)
 """
 
-from telescraper import TeleScraper, ScrapeCheckpoint
+from telescraper import TeleScraper
 
 API_ID = 12345678
 API_HASH = "your_api_hash"

@@ -6,13 +6,11 @@ Media Processing Utilities:
 
 import io
 import os
-from typing import Optional, Tuple, Dict, Any
+from typing import Any, Dict, Tuple
 
 
 def resize_image_sync(
-    file_source: Any,
-    max_dimension: int = 2560,
-    quality: int = 85
+    file_source: Any, max_dimension: int = 2560, quality: int = 85
 ) -> Tuple[io.BytesIO, Tuple[int, int]]:
     """
     Resize image to Telegram acceptable bounds (max 2560x2560) and encode to JPEG.
@@ -30,7 +28,7 @@ def resize_image_sync(
         if isinstance(file_source, bytes):
             return io.BytesIO(file_source), (0, 0)
         elif isinstance(file_source, str):
-            with open(file_source, 'rb') as f:
+            with open(file_source, "rb") as f:
                 return io.BytesIO(f.read()), (0, 0)
         return file_source, (0, 0)
 
@@ -47,15 +45,15 @@ def resize_image_sync(
         w, h = img.size
 
     # Convert RGBA to RGB for JPEG
-    if img.mode in ('RGBA', 'LA', 'P'):
-        background = Image.new('RGB', img.size, (255, 255, 255))
-        background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+    if img.mode in ("RGBA", "LA", "P"):
+        background = Image.new("RGB", img.size, (255, 255, 255))
+        background.paste(img, mask=img.split()[-1] if img.mode == "RGBA" else None)
         img = background
-    elif img.mode != 'RGB':
-        img = img.convert('RGB')
+    elif img.mode != "RGB":
+        img = img.convert("RGB")
 
     output = io.BytesIO()
-    img.save(output, format='JPEG', quality=quality, progressive=True)
+    img.save(output, format="JPEG", quality=quality, progressive=True)
     output.seek(0)
     return output, (w, h)
 
@@ -72,8 +70,8 @@ def inspect_media_metadata(file_path: str) -> Dict[str, Any]:
     }
 
     try:
-        from hachoir.parser import createParser
         from hachoir.metadata import extractMetadata
+        from hachoir.parser import createParser
 
         parser = createParser(file_path)
         if not parser:
@@ -82,14 +80,14 @@ def inspect_media_metadata(file_path: str) -> Dict[str, Any]:
         with parser:
             meta = extractMetadata(parser)
             if meta:
-                if meta.has('duration'):
-                    metadata['duration'] = int(meta.get('duration').total_seconds())
-                if meta.has('width'):
-                    metadata['width'] = int(meta.get('width'))
-                if meta.has('height'):
-                    metadata['height'] = int(meta.get('height'))
-                if meta.has('mime_type'):
-                    metadata['mime_type'] = meta.get('mime_type')
+                if meta.has("duration"):
+                    metadata["duration"] = int(meta.get("duration").total_seconds())
+                if meta.has("width"):
+                    metadata["width"] = int(meta.get("width"))
+                if meta.has("height"):
+                    metadata["height"] = int(meta.get("height"))
+                if meta.has("mime_type"):
+                    metadata["mime_type"] = meta.get("mime_type")
     except Exception:
         pass
 

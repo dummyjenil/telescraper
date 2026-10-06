@@ -3,10 +3,11 @@ Telegram Data Takeout Session.
 Enables high-volume scraping and mass media downloading with reduced flood limits.
 """
 
-from typing import Optional, List, Generator, Any, Union
-from .tl import functions, types
-from .models import MessageData, MemberData, ChatData
+from typing import Any, Generator, Optional, Union
+
 from .exceptions import TeleScraperError
+from .models import MessageData
+from .tl import functions, types
 
 
 class TakeoutSession:
@@ -23,7 +24,7 @@ class TakeoutSession:
         message_megagroups: bool = True,
         message_channels: bool = True,
         files: bool = True,
-        max_file_size: Optional[int] = None
+        max_file_size: Optional[int] = None,
     ):
         self._client = client
         self.contacts = contacts
@@ -44,15 +45,17 @@ class TakeoutSession:
 
     def init(self) -> None:
         """Initialize the takeout session with Telegram servers."""
-        res = self._client._invoke(functions.account.InitTakeoutSessionRequest(
-            contacts=self.contacts,
-            message_users=self.message_users,
-            message_chats=self.message_chats,
-            message_megagroups=self.message_megagroups,
-            message_channels=self.message_channels,
-            files=self.files,
-            file_max_size=self.max_file_size
-        ))
+        res = self._client._invoke(
+            functions.account.InitTakeoutSessionRequest(
+                contacts=self.contacts,
+                message_users=self.message_users,
+                message_chats=self.message_chats,
+                message_megagroups=self.message_megagroups,
+                message_channels=self.message_channels,
+                files=self.files,
+                file_max_size=self.max_file_size,
+            )
+        )
         if isinstance(res, types.account.Takeout):
             self.takeout_id = res.id
             print(f"[✔] Takeout Session initialized (ID: {self.takeout_id})")
@@ -78,10 +81,7 @@ class TakeoutSession:
         return self._client._invoke(wrapped)
 
     def iter_messages(
-        self,
-        target: Union[str, int],
-        limit: Optional[int] = None,
-        **kwargs
+        self, target: Union[str, int], limit: Optional[int] = None, **kwargs
     ) -> Generator[MessageData, None, None]:
         """Scrape messages using high-throughput takeout session."""
         peer = self._client._resolve_target(target)
@@ -102,10 +102,10 @@ class TakeoutSession:
                 limit=fetch_count,
                 max_id=0,
                 min_id=0,
-                hash=0
+                hash=0,
             )
             res = self._invoke(req)
-            messages = getattr(res, 'messages', [])
+            messages = getattr(res, "messages", [])
             if not messages:
                 break
 

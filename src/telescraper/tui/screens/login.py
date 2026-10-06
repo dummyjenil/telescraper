@@ -3,21 +3,19 @@ Login Screen for TeleScraper Textual TUI.
 Supports QR Code Login (with ASCII QR widget), Phone+OTP Login, Bot Token, and 2FA Cloud Password.
 """
 
-import io
 import time
 from typing import Callable, Optional
-from textual.binding import Binding
-from textual.app import ComposeResult
-from textual.screen import ModalScreen, Screen
-from textual.widgets import (
-    Static, Button, Input, TabbedContent, TabPane, Label, LoadingIndicator
-)
-from textual.containers import Vertical, Horizontal, Center, Grid
-from textual.reactive import reactive
+
 import qrcode
+from textual.app import ComposeResult
+from textual.binding import Binding
+from textual.containers import Center, Horizontal, Vertical
+from textual.reactive import reactive
+from textual.screen import ModalScreen, Screen
+from textual.widgets import Button, Input, Label, Static, TabbedContent, TabPane
 
 from ...client import TeleScraper
-from ...errors import SessionPasswordNeededError, RPCError
+from ...errors import SessionPasswordNeededError
 from ...tl import functions, types
 from ...utils import get_display_name
 
@@ -32,7 +30,7 @@ def generate_ascii_qr(data: str) -> str:
     )
     qr.add_data(data)
     qr.make(fit=True)
-    
+
     # Render with Unicode half/full blocks for clean terminal view
     matrix = qr.get_matrix()
     lines = []
@@ -97,7 +95,7 @@ class LoginScreen(Screen):
             with Vertical(classes="modal-dialog-large"):
                 yield Label("⚡ TeleScraper Telegram Login", id="login-title", classes="text-bold text-cyan")
                 yield Label("Pure Synchronous MTProto 2.0 Client", classes="subtext")
-                
+
                 with TabbedContent():
                     with TabPane("📱 QR Code Login", id="tab-qr"):
                         with Horizontal():
@@ -160,16 +158,16 @@ class LoginScreen(Screen):
                 self._qr_login_obj.recreate()
                 self.update_qr_display()
 
-            res = self.client._invoke(functions.auth.ExportLoginTokenRequest(
-                api_id=self.client.api_id,
-                api_hash=self.client.api_hash,
-                except_ids=self._qr_login_obj.ignored_ids
-            ))
+            res = self.client._invoke(
+                functions.auth.ExportLoginTokenRequest(
+                    api_id=self.client.api_id, api_hash=self.client.api_hash, except_ids=self._qr_login_obj.ignored_ids
+                )
+            )
 
             if isinstance(res, types.auth.LoginTokenSuccess):
                 user = res.authorization.user
                 self.client.session.user_id = user.id
-                if hasattr(self.client.session, 'save'):
+                if hasattr(self.client.session, "save"):
                     self.client.session.save()
                 self._polling_active = False
                 self.notify(f"Logged in as {get_display_name(user)}!", title="Success", severity="information")
@@ -182,7 +180,7 @@ class LoginScreen(Screen):
                 if isinstance(import_res, types.auth.LoginTokenSuccess):
                     user = import_res.authorization.user
                     self.client.session.user_id = user.id
-                    if hasattr(self.client.session, 'save'):
+                    if hasattr(self.client.session, "save"):
                         self.client.session.save()
                     self._polling_active = False
                     self.notify(f"Logged in as {get_display_name(user)}!", title="Success", severity="information")
@@ -207,12 +205,13 @@ class LoginScreen(Screen):
 
         try:
             from ... import password as pwd_mod
+
             pwd_info = self.client._invoke(functions.account.GetPasswordRequest())
             input_check = pwd_mod.compute_check(pwd_info, password)
             res = self.client._invoke(functions.auth.CheckPasswordRequest(password=input_check))
             user = res.user
             self.client.session.user_id = user.id
-            if hasattr(self.client.session, 'save'):
+            if hasattr(self.client.session, "save"):
                 self.client.session.save()
             self.notify(f"2FA Approved: {get_display_name(user)}", title="Success", severity="information")
             self.on_success()
@@ -233,31 +232,35 @@ class LoginScreen(Screen):
                 return
             try:
                 self.client.connect()
-                send_code_res = self.client._invoke(functions.auth.SendCodeRequest(
-                    phone_number=phone,
-                    api_id=self.client.api_id,
-                    api_hash=self.client.api_hash,
-                    settings=types.CodeSettings()
-                ))
+                send_code_res = self.client._invoke(
+                    functions.auth.SendCodeRequest(
+                        phone_number=phone,
+                        api_id=self.client.api_id,
+                        api_hash=self.client.api_hash,
+                        settings=types.CodeSettings(),
+                    )
+                )
                 self._phone_code_hash = send_code_res.phone_code_hash
                 self._phone_number = phone
                 self.query_one("#code-input", Input).disabled = False
                 self.query_one("#btn-phone-signin", Button).disabled = False
-                self.query_one("#phone-status-label", Static).update("[green]OTP code sent! Check Telegram or SMS.[/green]")
+                self.query_one("#phone-status-label", Static).update(
+                    "[green]OTP code sent! Check Telegram or SMS.[/green]"
+                )
             except Exception as e:
                 self.query_one("#phone-status-label", Static).update(f"[red]Error sending code: {e}[/red]")
 
         elif event.button.id == "btn-phone-signin":
             code = self.query_one("#code-input", Input).value.strip()
             try:
-                sign_in_res = self.client._invoke(functions.auth.SignInRequest(
-                    phone_number=self._phone_number,
-                    phone_code_hash=self._phone_code_hash,
-                    phone_code=code
-                ))
+                sign_in_res = self.client._invoke(
+                    functions.auth.SignInRequest(
+                        phone_number=self._phone_number, phone_code_hash=self._phone_code_hash, phone_code=code
+                    )
+                )
                 user = sign_in_res.user
                 self.client.session.user_id = user.id
-                if hasattr(self.client.session, 'save'):
+                if hasattr(self.client.session, "save"):
                     self.client.session.save()
                 self.notify(f"Logged in as {get_display_name(user)}!", title="Success")
                 self.on_success()

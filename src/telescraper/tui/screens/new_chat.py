@@ -2,12 +2,13 @@
 New Channel & Group Creator Modals for TeleScraper TUI.
 """
 
-from typing import Optional, Callable
-from textual.binding import Binding
+from typing import Optional
+
 from textual.app import ComposeResult
+from textual.binding import Binding
+from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
-from textual.widgets import Label, Button, Input, Select
-from textual.containers import Vertical, Horizontal
+from textual.widgets import Button, Input, Label
 
 from ...client import TeleScraper
 
@@ -29,12 +30,15 @@ class NewChatModal(ModalScreen[Optional[dict]]):
             is_ch = self.chat_type == "channel"
             title_text = "📢 New Telegram Channel" if is_ch else "👥 New Telegram Supergroup"
             yield Label(title_text, classes="text-bold text-cyan")
-            
+
             yield Input(placeholder="Channel Name" if is_ch else "Group Name", id="chat-title-input")
             yield Input(placeholder="Description / About (optional)", id="chat-about-input")
-            
+
             if not is_ch:
-                yield Input(placeholder="Initial members (usernames comma-separated, e.g. @user1, @user2)", id="chat-users-input")
+                yield Input(
+                    placeholder="Initial members (usernames comma-separated, e.g. @user1, @user2)",
+                    id="chat-users-input",
+                )
 
             with Horizontal(classes="margin-top"):
                 yield Button("Create", id="btn-create", variant="success")
@@ -46,7 +50,7 @@ class NewChatModal(ModalScreen[Optional[dict]]):
         elif event.button.id == "btn-create":
             title = self.query_one("#chat-title-input", Input).value.strip()
             about = self.query_one("#chat-about-input", Input).value.strip()
-            
+
             if not title:
                 self.notify("Title is required", severity="warning")
                 return

@@ -4,16 +4,14 @@ Handles call creation, acceptance, discard, and Diffie-Hellman cryptographic key
 100% Pure Synchronous, Zero Asyncio.
 """
 
-import os
 import hashlib
-from typing import Optional, Dict, Any, Tuple
-from .tl import functions, types
-from .helpers import generate_random_long
-from .utils import get_input_user
-
+import os
+from typing import Any, Optional, Tuple
 
 from .crypto import rsa
-
+from .helpers import generate_random_long
+from .tl import functions, types
+from .utils import get_input_user
 
 # Standard Telegram 2048-bit MODP Group 14 DH prime and generator
 DH_PRIME_2048 = int(
@@ -28,7 +26,7 @@ DH_PRIME_2048 = int(
     "E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9"
     "DE2BCBF6955817183995497CEA956AE515D2261898FA0510"
     "15728E5A8AACAA68FFFFFFFFFFFFFFFF",
-    16
+    16,
 )
 DH_G = 3
 
@@ -46,7 +44,7 @@ class VoIPSignalling:
 
     def _generate_dh_pair(self) -> Tuple[int, int, bytes]:
         """Generate local Diffie-Hellman private exponent a and public g_a."""
-        a = int.from_bytes(os.urandom(256), 'big') % (DH_PRIME_2048 - 1)
+        a = int.from_bytes(os.urandom(256), "big") % (DH_PRIME_2048 - 1)
         g_a = pow(DH_G, a, DH_PRIME_2048)
         g_a_bytes = rsa.get_byte_array(g_a)
         g_a_hash = hashlib.sha256(g_a_bytes).digest()
@@ -55,11 +53,7 @@ class VoIPSignalling:
         self._g_a_hash = g_a_hash
         return a, g_a, g_a_hash
 
-    def request_call(
-        self,
-        user_id: Any,
-        video: bool = False
-    ) -> Any:
+    def request_call(self, user_id: Any, video: bool = False) -> Any:
         """
         Initiate a private Telegram voice or video call.
 
@@ -72,28 +66,15 @@ class VoIPSignalling:
         random_id = generate_random_long()
 
         protocol = types.PhoneCallProtocol(
-            min_layer=65,
-            max_layer=92,
-            udp_p2p=True,
-            udp_reflector=True,
-            library_versions=["1.3.0", "2.0.0"]
+            min_layer=65, max_layer=92, udp_p2p=True, udp_reflector=True, library_versions=["1.3.0", "2.0.0"]
         )
 
         req = functions.phone.RequestCallRequest(
-            user_id=input_user,
-            random_id=random_id,
-            g_a_hash=g_a_hash,
-            protocol=protocol,
-            video=video
+            user_id=input_user, random_id=random_id, g_a_hash=g_a_hash, protocol=protocol, video=video
         )
         return self.client._invoke(req)
 
-    def accept_call(
-        self,
-        call_id: int,
-        access_hash: int,
-        g_a: bytes
-    ) -> Tuple[Any, int]:
+    def accept_call(self, call_id: int, access_hash: int, g_a: bytes) -> Tuple[Any, int]:
         """
         Accept an incoming Telegram voice or video call.
 
@@ -102,30 +83,22 @@ class VoIPSignalling:
         :param g_a: Sender's public DH bytes
         :return: (PhoneCall result, shared key fingerprint)
         """
-        b = int.from_bytes(os.urandom(256), 'big') % (DH_PRIME_2048 - 1)
+        b = int.from_bytes(os.urandom(256), "big") % (DH_PRIME_2048 - 1)
         g_b = pow(DH_G, b, DH_PRIME_2048)
         g_b_bytes = rsa.get_byte_array(g_b)
 
         # Compute shared key: K = (g_a)^b mod p
-        g_a_int = int.from_bytes(g_a, 'big')
+        g_a_int = int.from_bytes(g_a, "big")
         shared_key = pow(g_a_int, b, DH_PRIME_2048)
         shared_key_bytes = rsa.get_byte_array(shared_key)
-        key_fingerprint = int.from_bytes(hashlib.sha256(shared_key_bytes).digest()[:8], 'little')
+        key_fingerprint = int.from_bytes(hashlib.sha256(shared_key_bytes).digest()[:8], "little")
 
         input_call = types.InputPhoneCall(id=call_id, access_hash=access_hash)
         protocol = types.PhoneCallProtocol(
-            min_layer=65,
-            max_layer=92,
-            udp_p2p=True,
-            udp_reflector=True,
-            library_versions=["1.3.0", "2.0.0"]
+            min_layer=65, max_layer=92, udp_p2p=True, udp_reflector=True, library_versions=["1.3.0", "2.0.0"]
         )
 
-        req = functions.phone.AcceptCallRequest(
-            peer=input_call,
-            g_b=g_b_bytes,
-            protocol=protocol
-        )
+        req = functions.phone.AcceptCallRequest(peer=input_call, g_b=g_b_bytes, protocol=protocol)
         res = self.client._invoke(req)
         return res, key_fingerprint
 
@@ -135,7 +108,7 @@ class VoIPSignalling:
         access_hash: int,
         duration: int = 0,
         reason: Optional[types.TypePhoneCallDiscardReason] = None,
-        video: bool = False
+        video: bool = False,
     ) -> Any:
         """
         End, decline, or hang up an active or incoming call.
@@ -146,7 +119,7 @@ class VoIPSignalling:
             duration=duration,
             reason=reason or types.PhoneCallDiscardReasonHangup(),
             connection_id=0,
-            video=video
+            video=video,
         )
         return self.client._invoke(req)
 

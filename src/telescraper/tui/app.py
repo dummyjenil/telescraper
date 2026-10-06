@@ -3,27 +3,23 @@ Main Textual Application for TeleScraper TUI.
 Full Telegram Desktop Experience in the Terminal.
 """
 
-from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional
 
 from textual.app import App, ComposeResult
-from textual.widgets import Header, Footer, Static, Button, Label
-from textual.containers import Horizontal, Vertical, Grid
 from textual.binding import Binding
+from textual.containers import Horizontal, Vertical
+from textual.widgets import Button, Footer, Label
 
 from ..client import TeleScraper
-from .screens.login import LoginScreen
-from .screens.profile import ProfileModal
-from .screens.contacts import ContactsModal
-from .screens.settings import SettingsModal
 from .screens.call import CallScreen
+from .screens.contacts import ContactsModal
+from .screens.login import LoginScreen
 from .screens.new_chat import NewChatModal
-from .screens.media_viewer import MediaViewerModal
-from .screens.poll_creator import PollCreatorModal
-
-from .widgets.sidebar import LeftSidebarWidget
-from .widgets.chat_view import ChatViewWidget
+from .screens.profile import ProfileModal
+from .screens.settings import SettingsModal
 from .widgets.chat_info import RightChatInfoWidget
+from .widgets.chat_view import ChatViewWidget
+from .widgets.sidebar import LeftSidebarWidget
 
 
 class TelegramApp(App):
@@ -50,7 +46,7 @@ class TelegramApp(App):
     def on_mount(self) -> None:
         self.title = "TeleScraper Telegram"
         self.sub_title = "Pure Synchronous MTProto 2.0"
-        
+
         # Check authorization
         try:
             self.client.connect()
@@ -71,7 +67,7 @@ class TelegramApp(App):
                 client=self.client,
                 on_chat_selected=self.on_chat_selected,
                 on_hamburger_click=self.on_hamburger_menu,
-                on_new_chat_click=self.on_new_chat_dialog
+                on_new_chat_click=self.on_new_chat_dialog,
             )
             yield ChatViewWidget(
                 client=self.client,
@@ -79,13 +75,13 @@ class TelegramApp(App):
                 on_info_click=self.action_toggle_info,
                 on_send_message=self.on_send_message_submit,
                 on_attach_file=self.on_attach_file_dialog,
-                on_create_poll=self.on_poll_creator_dialog
+                on_create_poll=self.on_poll_creator_dialog,
             )
             yield RightChatInfoWidget(
                 client=self.client,
                 on_export=self.on_export_data,
                 on_extract_data=self.on_extract_wallets,
-                on_close=self.action_toggle_info
+                on_close=self.action_toggle_info,
             )
         yield Footer()
 
@@ -93,7 +89,7 @@ class TelegramApp(App):
         # Hide right sidebar initially
         right = self.query_one(RightChatInfoWidget)
         right.display = False
-        
+
         # Refresh left sidebar chats
         sidebar = self.query_one(LeftSidebarWidget)
         sidebar.load_dialogs()
@@ -103,7 +99,7 @@ class TelegramApp(App):
         target = username or str(chat_id)
         chat_view = self.query_one(ChatViewWidget)
         chat_view.load_chat(target=target, title=title, username=username)
-        
+
         right_info = self.query_one(RightChatInfoWidget)
         right_info.update_chat_info(target=target, title=title, username=username)
 
@@ -124,7 +120,7 @@ class TelegramApp(App):
         if not target:
             self.notify("Select a chat first to attach files.", severity="warning")
             return
-        
+
         from .screens.dialogs import FilePickerModal, NotSupportedModal
 
         def handle_file(file_path: Optional[str]):
@@ -141,12 +137,17 @@ class TelegramApp(App):
 
     def on_poll_creator_dialog(self) -> None:
         from .screens.dialogs import NotSupportedModal
-        self.push_screen(NotSupportedModal("Telegram Poll Creation", "Poll creation via pure MTProto is not supported yet in this version."))
+
+        self.push_screen(
+            NotSupportedModal(
+                "Telegram Poll Creation", "Poll creation via pure MTProto is not supported yet in this version."
+            )
+        )
 
     def on_hamburger_menu(self) -> None:
         """Hamburger Menu actions modal."""
         from textual.screen import ModalScreen
-        
+
         class HamburgerModal(ModalScreen):
             BINDINGS = [
                 Binding("escape", "dismiss", "Close", priority=True),
@@ -207,13 +208,10 @@ class TelegramApp(App):
     def on_extract_wallets(self, target: str) -> None:
         try:
             data = self.client.extract_from_messages(target, limit=100)
-            btc_count = len(data.get('wallets', {}).get('bitcoin', []))
-            eth_count = len(data.get('wallets', {}).get('ethereum', []))
-            emails_count = len(data.get('emails', []))
-            self.notify(
-                f"Discovered: {btc_count} BTC, {eth_count} ETH, {emails_count} Emails!",
-                title="Extracted Data"
-            )
+            btc_count = len(data.get("wallets", {}).get("bitcoin", []))
+            eth_count = len(data.get("wallets", {}).get("ethereum", []))
+            emails_count = len(data.get("emails", []))
+            self.notify(f"Discovered: {btc_count} BTC, {eth_count} ETH, {emails_count} Emails!", title="Extracted Data")
         except Exception as e:
             self.notify(f"Extraction failed: {e}", severity="error")
 
@@ -244,6 +242,7 @@ class TelegramApp(App):
         def on_pick(c_id: Optional[str]):
             if c_id:
                 self.on_chat_selected(int(c_id) if c_id.isdigit() else 0, f"Contact {c_id}", None)
+
         self.push_screen(ContactsModal(self.client, on_select_contact=on_pick))
 
     def action_open_settings(self) -> None:

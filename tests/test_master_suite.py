@@ -7,11 +7,12 @@ Profile Photos, Parallel Uploads, Invite Links, Stories, Gap Sync, and VoIP Sign
 
 import os
 import tempfile
-from telescraper import TeleScraper, StringSession
+
+from telescraper import StringSession, TeleScraper
 from telescraper.network.sender_pool import SyncSenderPool
 from telescraper.sync_engine import SyncUpdateEngine, UpdateSyncState
-from telescraper.voip import VoIPSignalling, DH_PRIME_2048, DH_G
 from telescraper.uploader import upload_file_sync
+from telescraper.voip import DH_G, DH_PRIME_2048, VoIPSignalling
 
 
 def test_sender_pool():
@@ -53,8 +54,8 @@ def test_voip_signalling():
 
     # Simulate receiver DH key computation
     b, g_b, _ = voip._generate_dh_pair()
-    g_a_bytes = g_a.to_bytes(256, 'big')
-    g_b_bytes = g_b.to_bytes(256, 'big')
+    g_a_bytes = g_a.to_bytes(256, "big")
+    g_b_bytes = g_b.to_bytes(256, "big")
 
     shared_from_a = pow(g_b, a, DH_PRIME_2048)
     shared_from_b = pow(g_a, b, DH_PRIME_2048)
@@ -64,16 +65,18 @@ def test_voip_signalling():
 
 def test_parallel_uploader_logic():
     print("Testing Parallel Chunk Uploader with mock client...")
+
     class MockClient:
         def __init__(self):
             self.invoked_parts = []
+
         def _invoke(self, req):
             self.invoked_parts.append(req.file_part)
             return True
 
     mock_client = MockClient()
     dummy_data = b"X" * (1024 * 1024)  # 1MB data (2 chunks of 512KB)
-    
+
     # Test sequential (workers=1)
     res_seq = upload_file_sync(mock_client, dummy_data, filename="test.bin", workers=1)
     assert res_seq.parts == 2
